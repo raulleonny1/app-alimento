@@ -5,6 +5,7 @@ import { useDistribuciones } from '../hooks/useDistribuciones';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
 import { calcularDistribucion } from '../lib/distribucion';
+import { totalMiembrosFamilia } from '../lib/titulares';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -29,7 +30,7 @@ export function DistribucionPage() {
   const [detalleTitulares, setDetalleTitulares] = useState(false);
 
   const loading = loadingAlimentos || loadingBenef;
-  const totalPersonasFamilia = beneficiarios.reduce((s, b) => s + b.numMiembrosFamilia, 0);
+  const totalMiembros = totalMiembrosFamilia(beneficiarios);
 
   const agregarProducto = (alimentoId: string) => {
     const existe = productos.find((p) => p.alimentoId === alimentoId);
@@ -132,10 +133,8 @@ export function DistribucionPage() {
           <span className="stat-hint">Toca para ver familias</span>
         </button>
         <div className="stat-card">
-          <span className="stat-num">
-            {beneficiarios.filter((b) => !b.tieneRestriccionAzucar).length}
-          </span>
-          <span className="stat-label">Sin restricción</span>
+          <span className="stat-num">{totalMiembros}</span>
+          <span className="stat-label">Miembros familia</span>
         </div>
         <div className="stat-card">
           <span className="stat-num">
@@ -148,15 +147,17 @@ export function DistribucionPage() {
       {detalleTitulares && (
         <div className="card detalle-titulares">
           <p className="detalle-titulares-total">
-            <strong>{beneficiarios.length}</strong> titulares ·{' '}
-            <strong>{totalPersonasFamilia}</strong> personas en total (unidad familiar)
+            <strong>{beneficiarios.length}</strong> titulares (familias de hogar) ·{' '}
+            <strong>{totalMiembros}</strong> miembros en total
           </p>
           <ul className="titulares-lista">
             {beneficiarios.map((b) => (
               <li key={b.id}>
-                <span className="titular-nombre">{b.nombre}</span>
+                <span className="titular-nombre">
+                  <span className="titular-exp">{b.expediente}</span> {b.nombre}
+                </span>
                 <span className="titular-miembros">
-                  {b.numMiembrosFamilia} {b.numMiembrosFamilia === 1 ? 'miembro' : 'miembros'}
+                  {b.numMiembrosFamilia} en familia
                 </span>
               </li>
             ))}

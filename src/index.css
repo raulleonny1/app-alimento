@@ -512,6 +512,12 @@ body {
   font-weight: 500;
 }
 
+.titular-exp {
+  color: var(--gray-400);
+  font-size: 0.75rem;
+  margin-right: 4px;
+}
+
 .titular-miembros {
   flex-shrink: 0;
   background: var(--green-100);
