@@ -41,11 +41,26 @@ export interface Bolsa {
   items: ItemDistribucion[];
 }
 
+export interface ProductoUsado {
+  alimentoId: string;
+  codigoBarras: string;
+  nombre: string;
+  cantidadTotal: number;
+  unidad: string;
+  contieneAzucar: boolean;
+}
+
 export interface SesionDistribucion {
   id: string;
   fecha: number;
+  totalTitulares: number;
+  totalMiembrosFamilia: number;
+  /** @deprecated usar totalTitulares */
   totalBeneficiarios: number;
+  productosUsados: ProductoUsado[];
   bolsas: Bolsa[];
+  advertencias: string[];
+  sobrantes: { nombre: string; cantidad: number; unidad: string }[];
   notas: string;
 }
 

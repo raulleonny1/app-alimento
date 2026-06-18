@@ -19,13 +19,23 @@ const COL = 'alimentos';
 export function useAlimentos() {
   const [alimentos, setAlimentos] = useState<Alimento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, COL), orderBy('nombre', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setAlimentos(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Alimento));
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setError(null);
+        setAlimentos(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Alimento));
+        setLoading(false);
+      },
+      (err) => {
+        console.error(err);
+        setError('No se pudieron cargar alimentos desde Firebase');
+        setLoading(false);
+      }
+    );
     return unsub;
   }, []);
 
@@ -38,16 +48,16 @@ export function useAlimentos() {
   };
 
   const agregar = async (data: Omit<Alimento, 'id' | 'createdAt'>) => {
-    await addDoc(collection(db, COL), { ...data, createdAt: Date.now() });
+    await addDoc(collection(db, COL), { ...data, createdAt: Date.now(), updatedAt: Date.now() });
   };
 
   const actualizar = async (id: string, data: Partial<Omit<Alimento, 'id'>>) => {
-    await updateDoc(doc(db, COL, id), data);
+    await updateDoc(doc(db, COL, id), { ...data, updatedAt: Date.now() });
   };
 
   const eliminar = async (id: string) => {
     await deleteDoc(doc(db, COL, id));
   };
 
-  return { alimentos, loading, buscarPorCodigo, agregar, actualizar, eliminar };
+  return { alimentos, loading, error, buscarPorCodigo, agregar, actualizar, eliminar };
 }

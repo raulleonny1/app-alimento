@@ -336,9 +336,32 @@ body {
   text-transform: uppercase;
 }
 
+.badge.ok {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
 .badge.warning {
   background: var(--orange-100);
   color: var(--orange-600);
+}
+
+.resultado-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.historial-seccion {
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.historial-seccion ul {
+  padding-left: 16px;
+  margin-top: 4px;
+  color: var(--gray-600);
 }
 
 .meta {

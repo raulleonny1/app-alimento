@@ -12,10 +12,10 @@ function formatFecha(ts: number): string {
 }
 
 export function HistorialPage() {
-  const { distribuciones, loading } = useDistribuciones();
+  const { distribuciones, loading, error } = useDistribuciones();
   const [expandido, setExpandido] = useState<string | null>(null);
 
-  if (loading) return <p className="loading">Cargando...</p>;
+  if (loading) return <p className="loading">Cargando historial...</p>;
 
   return (
     <div className="page">
@@ -23,8 +23,14 @@ export function HistorialPage() {
         <h2>Historial</h2>
       </div>
 
+      {error && <p className="alerta">{error}</p>}
+
+      <p className="info-banner">
+        Todas las distribuciones quedan guardadas en Firebase para consultar después.
+      </p>
+
       {distribuciones.length === 0 ? (
-        <p className="empty">No hay distribuciones guardadas</p>
+        <p className="empty">No hay distribuciones guardadas aún</p>
       ) : (
         <div className="list">
           {distribuciones.map((d) => (
@@ -36,7 +42,8 @@ export function HistorialPage() {
                 <div>
                   <strong>{formatFecha(d.fecha)}</strong>
                   <p className="meta">
-                    {d.bolsas.length} bolsas · {d.totalBeneficiarios} beneficiados
+                    {d.bolsas.length} bolsas · {d.totalTitulares ?? d.totalBeneficiarios} titulares
+                    {d.totalMiembrosFamilia ? ` · ${d.totalMiembrosFamilia} miembros` : ''}
                   </p>
                 </div>
                 <span>{expandido === d.id ? '▲' : '▼'}</span>
@@ -44,7 +51,41 @@ export function HistorialPage() {
 
               {expandido === d.id && (
                 <div className="historial-detalle">
-                  {d.notas && <p className="alerta">⚠️ {d.notas}</p>}
+                  {d.productosUsados?.length > 0 && (
+                    <div className="historial-seccion">
+                      <strong>Productos usados</strong>
+                      <ul>
+                        {d.productosUsados.map((p, i) => (
+                          <li key={i}>
+                            {p.nombre}: {p.cantidadTotal} {p.unidad}
+                            {p.contieneAzucar ? ' (azúcar)' : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {d.advertencias?.length > 0 && (
+                    <div className="alertas">
+                      {d.advertencias.map((a, i) => (
+                        <p key={i} className="alerta">⚠️ {a}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {d.sobrantes?.length > 0 && (
+                    <div className="historial-seccion">
+                      <strong>Sobrantes</strong>
+                      <ul>
+                        {d.sobrantes.map((s, i) => (
+                          <li key={i}>
+                            {s.nombre}: {s.cantidad} {s.unidad}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {d.bolsas.map((bolsa) => (
                     <div key={bolsa.beneficiarioId} className="bolsa-resumen">
                       <strong>{bolsa.beneficiarioNombre}</strong>

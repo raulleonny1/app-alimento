@@ -60,15 +60,6 @@ function necesitaSincronizar(docs: Beneficiario[], listaPublic: BeneficiarioInpu
   return new Set(expedientes).size !== expedientes.length;
 }
 
-function aBeneficiarioLocal(data: BeneficiarioInput, index: number): Beneficiario {
-  return {
-    ...data,
-    id: data.expediente,
-    tieneRestriccionAzucar: calcularRestriccionAzucar(data),
-    createdAt: index,
-  };
-}
-
 export function useBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,15 +95,9 @@ export function useBeneficiarios() {
         setBeneficiarios(titulares);
         setLoading(false);
       },
-      async (err) => {
+      (err) => {
         console.error(err);
-        try {
-          const publica = await cargarDesdePublic();
-          setBeneficiarios(deduplicarTitulares(publica.map(aBeneficiarioLocal)));
-          setError('Sin Firebase. Datos de public/beneficiarios.json');
-        } catch {
-          setError('Error al cargar titulares');
-        }
+        setError('Error de Firebase. Configura Firestore y las variables VITE_FIREBASE_* en Vercel.');
         setLoading(false);
       }
     );
@@ -122,16 +107,18 @@ export function useBeneficiarios() {
 
   const agregar = async (data: BeneficiarioInput) => {
     const id = data.expediente.trim();
-    await setDoc(doc(db, COL, id), { ...aFirestore(data), createdAt: Date.now() });
+    const ahora = Date.now();
+    await setDoc(doc(db, COL, id), { ...aFirestore(data), createdAt: ahora, updatedAt: ahora });
   };
 
   const actualizar = async (id: string, data: BeneficiarioInput) => {
     const nuevoId = data.expediente.trim();
+    const payload = { ...aFirestore(data), updatedAt: Date.now() };
     if (nuevoId !== id) {
       await deleteDoc(doc(db, COL, id));
-      await setDoc(doc(db, COL, nuevoId), { ...aFirestore(data), createdAt: Date.now() });
+      await setDoc(doc(db, COL, nuevoId), { ...payload, createdAt: Date.now() });
     } else {
-      await updateDoc(doc(db, COL, id), aFirestore(data));
+      await updateDoc(doc(db, COL, id), payload);
     }
   };
 

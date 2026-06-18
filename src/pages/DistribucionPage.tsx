@@ -14,9 +14,9 @@ interface ProductoCantidad {
 }
 
 export function DistribucionPage() {
-  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, agregar } = useAlimentos();
-  const { beneficiarios, loading: loadingBenef } = useBeneficiarios();
-  const { guardar } = useDistribuciones();
+  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, agregar, error: errorAli } = useAlimentos();
+  const { beneficiarios, loading: loadingBenef, error: errorBenef } = useBeneficiarios();
+  const { guardar, error: errorDist } = useDistribuciones();
 
   const [productos, setProductos] = useState<ProductoCantidad[]>([]);
   const [mostrarScanner, setMostrarScanner] = useState(false);
@@ -26,6 +26,7 @@ export function DistribucionPage() {
     sobrantes: { nombre: string; cantidad: number; unidad: string }[];
   } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [guardadoFirebase, setGuardadoFirebase] = useState(false);
   const [registrarCodigo, setRegistrarCodigo] = useState<string | null>(null);
   const [detalleTitulares, setDetalleTitulares] = useState(false);
 
@@ -74,7 +75,7 @@ export function DistribucionPage() {
     }
   };
 
-  const calcular = () => {
+  const calcular = async () => {
     if (beneficiarios.length === 0) {
       alert('Registra beneficiados primero.');
       return;
@@ -94,24 +95,40 @@ export function DistribucionPage() {
 
     const res = calcularDistribucion(entradas, beneficiarios);
     setResultado(res);
-  };
+    setGuardadoFirebase(false);
 
-  const guardarDistribucion = async () => {
-    if (!resultado) return;
     setGuardando(true);
-    await guardar({
-      fecha: Date.now(),
-      totalBeneficiarios: beneficiarios.length,
-      bolsas: resultado.bolsas,
-      notas: resultado.advertencias.join('; '),
-    });
+    try {
+      await guardar({
+        fecha: Date.now(),
+        totalTitulares: beneficiarios.length,
+        totalBeneficiarios: beneficiarios.length,
+        totalMiembrosFamilia: totalMiembros,
+        productosUsados: entradas.map((e) => ({
+          alimentoId: e.alimento.id,
+          codigoBarras: e.alimento.codigoBarras,
+          nombre: e.alimento.nombre,
+          cantidadTotal: e.cantidadTotal,
+          unidad: e.alimento.unidad,
+          contieneAzucar: e.alimento.contieneAzucar,
+        })),
+        bolsas: res.bolsas,
+        advertencias: res.advertencias,
+        sobrantes: res.sobrantes,
+        notas: res.advertencias.join('; '),
+      });
+      setGuardadoFirebase(true);
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar en Firebase. Revisa la conexión.');
+    }
     setGuardando(false);
-    alert('Distribución guardada en el historial.');
   };
 
   const reiniciar = () => {
     setProductos([]);
     setResultado(null);
+    setGuardadoFirebase(false);
   };
 
   if (loading) return <p className="loading">Cargando...</p>;
@@ -121,6 +138,10 @@ export function DistribucionPage() {
       <div className="page-header">
         <h2>Crear bolsas</h2>
       </div>
+
+      {(errorBenef || errorAli || errorDist) && (
+        <p className="alerta">{errorBenef || errorAli || errorDist}</p>
+      )}
 
       <div className="stats-row">
         <button
@@ -258,8 +279,8 @@ export function DistribucionPage() {
           )}
 
           {productos.length > 0 && (
-            <button className="btn primary large full" onClick={calcular}>
-              🧮 Calcular distribución
+            <button className="btn primary large full" onClick={calcular} disabled={guardando}>
+              {guardando ? 'Guardando en Firebase...' : '🧮 Calcular y guardar'}
             </button>
           )}
         </>
@@ -269,9 +290,12 @@ export function DistribucionPage() {
         <div className="resultado">
           <div className="resultado-header">
             <h3>✅ Bolsas listas ({resultado.bolsas.length})</h3>
-            <button className="btn-text" onClick={reiniciar}>
-              Nueva distribución
-            </button>
+            <div className="resultado-header-actions">
+              {guardadoFirebase && <span className="badge ok">Guardado en Firebase</span>}
+              <button className="btn-text" onClick={reiniciar}>
+                Nueva distribución
+              </button>
+            </div>
           </div>
 
           {resultado.advertencias.length > 0 && (
@@ -312,14 +336,6 @@ export function DistribucionPage() {
               </div>
             ))}
           </div>
-
-          <button
-            className="btn primary large full"
-            onClick={guardarDistribucion}
-            disabled={guardando}
-          >
-            {guardando ? 'Guardando...' : '💾 Guardar en historial'}
-          </button>
         </div>
       )}
     </div>
