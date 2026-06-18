@@ -127,6 +127,7 @@ export function DistribucionPage() {
             cantidadTotal: e.cantidadTotal,
             unidad: esProductoCaja(e.alimento) ? 'unidad' : e.alimento.unidad,
             contieneAzucar: e.alimento.contieneAzucar,
+            exclusivoDiabeticos: e.alimento.exclusivoDiabeticos,
           };
           if (esProductoCaja(e.alimento)) {
             return {
@@ -241,6 +242,9 @@ export function DistribucionPage() {
                   <div key={p.alimentoId} className="card list-item producto-cantidad">
                     <div className="list-item-header">
                       <strong>{alimento.nombre}</strong>
+                      {alimento.exclusivoDiabeticos && (
+                        <span className="badge info">Solo diabéticos</span>
+                      )}
                       {alimento.contieneAzucar && <span className="badge warning">Azúcar</span>}
                     </div>
                     <p className="barcode-display">📊 {etiquetaCodigos(alimento)}</p>

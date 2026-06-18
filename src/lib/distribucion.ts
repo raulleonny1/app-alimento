@@ -36,9 +36,37 @@ function distribuirProducto(
   cantidadTotal: number,
   beneficiarios: Beneficiario[],
   bolsasMap: Map<string, Bolsa>
-): number {
+): { sobrante: number; advertencia?: string } {
   const n = beneficiarios.length;
-  if (n === 0 || cantidadTotal <= 0) return cantidadTotal;
+  if (n === 0 || cantidadTotal <= 0) return { sobrante: cantidadTotal };
+
+  if (alimento.exclusivoDiabeticos) {
+    const destinatarios = beneficiarios.filter((b) => b.tieneRestriccionAzucar);
+    if (destinatarios.length === 0) {
+      return {
+        sobrante: cantidadTotal,
+        advertencia: `${alimento.nombre}: es exclusivo para diabéticos, pero no hay familias con diabetes registradas.`,
+      };
+    }
+
+    const cuotas = repartirEquitativamente(cantidadTotal, destinatarios.length);
+    let asignado = 0;
+
+    destinatarios.forEach((b, i) => {
+      const cantidad = cuotas[i];
+      if (cantidad <= 0) return;
+      asignado += cantidad;
+      bolsasMap.get(b.id)!.items.push({
+        alimentoId: alimento.id,
+        codigoBarras: alimento.codigoBarras,
+        nombre: alimento.nombre,
+        cantidad,
+        unidad: esProductoCaja(alimento) ? 'unidad' : alimento.unidad,
+      });
+    });
+
+    return { sobrante: cantidadTotal - asignado };
+  }
 
   const cuotas = repartirEquitativamente(cantidadTotal, n);
   const asignado = new Map<string, number>();
@@ -93,7 +121,7 @@ function distribuirProducto(
     });
   }
 
-  return sobrante;
+  return { sobrante };
 }
 
 export function calcularDistribucion(
@@ -113,7 +141,13 @@ export function calcularDistribucion(
   }
 
   for (const { alimento, cantidadTotal } of productos) {
-    const resto = distribuirProducto(alimento, cantidadTotal, beneficiarios, bolsasMap);
+    const { sobrante: resto, advertencia } = distribuirProducto(
+      alimento,
+      cantidadTotal,
+      beneficiarios,
+      bolsasMap
+    );
+    if (advertencia) advertencias.push(advertencia);
     if (resto > 0) {
       sobrantes.push({
         nombre: alimento.nombre,

@@ -75,6 +75,9 @@ export function useAlimentos() {
     if (data.stock == null || data.stock < 1) {
       delete payload.stock;
     }
+    if (!data.exclusivoDiabeticos) {
+      delete payload.exclusivoDiabeticos;
+    }
     await addDoc(collection(db, COL), payload);
   };
 
@@ -86,6 +89,9 @@ export function useAlimentos() {
     }
     if (!data.codigoBarras2?.trim()) {
       payload.codigoBarras2 = deleteField();
+    }
+    if (!data.exclusivoDiabeticos) {
+      payload.exclusivoDiabeticos = false;
     }
     await updateDoc(doc(db, COL, id), payload);
   };

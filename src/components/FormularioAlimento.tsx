@@ -44,6 +44,9 @@ export function FormularioAlimento({
   const [contieneAzucar, setContieneAzucar] = useState(
     alimentoExistente?.contieneAzucar ?? false
   );
+  const [exclusivoDiabeticos, setExclusivoDiabeticos] = useState(
+    alimentoExistente?.exclusivoDiabeticos ?? false
+  );
   const [esCaja, setEsCaja] = useState(vieneEnCajas);
   const [unidad, setUnidad] = useState(alimentoExistente?.unidad ?? 'lata');
   const [numCajas, setNumCajas] = useState(
@@ -89,6 +92,7 @@ export function FormularioAlimento({
       codigoBarras: codigoBarras.trim(),
       nombre: nombre.trim(),
       contieneAzucar,
+      exclusivoDiabeticos,
       unidad,
     };
     if (c2) data.codigoBarras2 = c2;
@@ -269,7 +273,20 @@ export function FormularioAlimento({
         <label className="checkbox-field highlight">
           <input
             type="checkbox"
+            checked={exclusivoDiabeticos}
+            onChange={(e) => {
+              setExclusivoDiabeticos(e.target.checked);
+              if (e.target.checked) setContieneAzucar(false);
+            }}
+          />
+          <span>🩺 Exclusivo para diabéticos (solo reparte entre familias con diabetes)</span>
+        </label>
+
+        <label className="checkbox-field highlight">
+          <input
+            type="checkbox"
             checked={contieneAzucar}
+            disabled={exclusivoDiabeticos}
             onChange={(e) => setContieneAzucar(e.target.checked)}
           />
           <span>⚠️ Contiene azúcar (no apto para diabéticos)</span>

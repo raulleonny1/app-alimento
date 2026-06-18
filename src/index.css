@@ -366,6 +366,11 @@ body {
   color: var(--orange-600);
 }
 
+.badge.info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 .resultado-header-actions {
   display: flex;
   flex-direction: column;

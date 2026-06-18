@@ -25,6 +25,8 @@ export interface Alimento {
   nombre: string;
   /** Si el producto contiene azúcar o es perjudicial para diabéticos */
   contieneAzucar: boolean;
+  /** Solo se reparte entre familias con diabetes, de forma equitativa */
+  exclusivoDiabeticos?: boolean;
   unidad: string;
   /** Opcional: se reparte por cajas y cada caja trae N unidades */
   esCaja?: boolean;
@@ -55,6 +57,7 @@ export interface ProductoUsado {
   cantidadTotal: number;
   unidad: string;
   contieneAzucar: boolean;
+  exclusivoDiabeticos?: boolean;
   esCaja?: boolean;
   cajasUsadas?: number;
   unidadesPorCaja?: number;

@@ -61,6 +61,7 @@ export function HistorialPage() {
                             {p.esCaja && p.cajasUsadas
                               ? `${p.cajasUsadas} caja(s) × ${p.unidadesPorCaja} = ${p.cantidadTotal} unidades`
                               : `${p.cantidadTotal} ${p.unidad}`}
+                            {p.exclusivoDiabeticos ? ' (solo diabéticos)' : ''}
                             {p.contieneAzucar ? ' (azúcar)' : ''}
                           </li>
                         ))}

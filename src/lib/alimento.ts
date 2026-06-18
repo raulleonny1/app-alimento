@@ -63,5 +63,6 @@ export function normalizarAlimento(data: Record<string, unknown>): Partial<Alime
     esCaja: esCaja && !!unidadesPorCaja,
     unidadesPorCaja,
     codigoBarras2: data.codigoBarras2 ? String(data.codigoBarras2).trim() : undefined,
+    exclusivoDiabeticos: Boolean(data.exclusivoDiabeticos),
   };
 }

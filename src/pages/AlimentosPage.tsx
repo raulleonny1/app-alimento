@@ -102,6 +102,7 @@ export function AlimentosPage() {
             <div key={a.id} className="card list-item">
               <div className="list-item-header">
                 <strong>{a.nombre}</strong>
+                {a.exclusivoDiabeticos && <span className="badge info">Diabéticos</span>}
                 {a.contieneAzucar && <span className="badge warning">Azúcar</span>}
               </div>
               <p className="barcode-display">📊 {etiquetaCodigos(a)}</p>
