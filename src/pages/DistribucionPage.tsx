@@ -8,6 +8,7 @@ import { calcularDistribucion } from '../lib/distribucion';
 import {
   etiquetaCantidadIngreso,
   esProductoCaja,
+  etiquetaCodigos,
   resumenCantidad,
   unidadesTotales,
 } from '../lib/alimento';
@@ -38,16 +39,16 @@ export function DistribucionPage() {
 
   const loading = loadingAlimentos || loadingBenef;
 
-  const agregarProducto = (alimentoId: string) => {
+  const agregarProducto = (alimentoId: string, cantidad = 1) => {
     const existe = productos.find((p) => p.alimentoId === alimentoId);
     if (existe) {
       setProductos(
         productos.map((p) =>
-          p.alimentoId === alimentoId ? { ...p, cantidad: p.cantidad + 1 } : p
+          p.alimentoId === alimentoId ? { ...p, cantidad: p.cantidad + cantidad } : p
         )
       );
     } else {
-      setProductos([...productos, { alimentoId, cantidad: 1 }]);
+      setProductos([...productos, { alimentoId, cantidad }]);
     }
   };
 
@@ -61,12 +62,17 @@ export function DistribucionPage() {
     agregarProducto(alimento.id);
   };
 
-  const handleRegistrarNuevo = async (data: Omit<Alimento, 'id' | 'createdAt'>) => {
+  const handleRegistrarNuevo = async (
+    data: Omit<Alimento, 'id' | 'createdAt'>,
+    extras?: { cantidadIngresada: number }
+  ) => {
     await agregar(data);
-    const nuevo = await buscarPorCodigo(data.codigoBarras);
+    const nuevo =
+      (await buscarPorCodigo(data.codigoBarras)) ??
+      (data.codigoBarras2 ? await buscarPorCodigo(data.codigoBarras2) : null);
     setRegistrarCodigo(null);
     if (nuevo) {
-      agregarProducto(nuevo.id);
+      agregarProducto(nuevo.id, extras?.cantidadIngresada ?? 1);
     }
   };
 
@@ -237,7 +243,7 @@ export function DistribucionPage() {
                       <strong>{alimento.nombre}</strong>
                       {alimento.contieneAzucar && <span className="badge warning">Azúcar</span>}
                     </div>
-                    <p className="barcode-display">📊 {alimento.codigoBarras}</p>
+                    <p className="barcode-display">📊 {etiquetaCodigos(alimento)}</p>
                     <div className="cantidad-control">
                       <button
                         type="button"

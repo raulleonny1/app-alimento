@@ -272,6 +272,16 @@ body {
   border-color: transparent;
 }
 
+.highlight-field span {
+  color: var(--green-700);
+  font-size: 0.9rem;
+}
+
+.highlight-field input {
+  border-color: var(--green-500);
+  font-weight: 600;
+}
+
 .checkbox-field {
   display: flex;
   align-items: flex-start;

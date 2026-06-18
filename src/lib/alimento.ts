@@ -1,5 +1,26 @@
 import type { Alimento } from '../types';
 
+export function codigosDeAlimento(alimento: Pick<Alimento, 'codigoBarras' | 'codigoBarras2'>): string[] {
+  const c1 = alimento.codigoBarras?.trim();
+  const c2 = alimento.codigoBarras2?.trim();
+  const lista: string[] = [];
+  if (c1) lista.push(c1);
+  if (c2 && c2 !== c1) lista.push(c2);
+  return lista;
+}
+
+export function coincideCodigo(
+  alimento: Pick<Alimento, 'codigoBarras' | 'codigoBarras2'>,
+  codigo: string
+): boolean {
+  const c = codigo.trim();
+  return codigosDeAlimento(alimento).includes(c);
+}
+
+export function etiquetaCodigos(alimento: Pick<Alimento, 'codigoBarras' | 'codigoBarras2'>): string {
+  return codigosDeAlimento(alimento).join(' · ');
+}
+
 export function esProductoCaja(alimento: Alimento): boolean {
   return Boolean(alimento.esCaja && alimento.unidadesPorCaja && alimento.unidadesPorCaja > 0);
 }
@@ -32,5 +53,6 @@ export function normalizarAlimento(data: Record<string, unknown>): Partial<Alime
   return {
     esCaja: esCaja && !!unidadesPorCaja,
     unidadesPorCaja,
+    codigoBarras2: data.codigoBarras2 ? String(data.codigoBarras2).trim() : undefined,
   };
 }

@@ -18,6 +18,15 @@ import { normalizarAlimento } from '../lib/alimento';
 
 const COL = 'alimentos';
 
+function mapDoc(d: { id: string; data: () => Record<string, unknown> }): Alimento {
+  const raw = d.data();
+  return {
+    id: d.id,
+    ...raw,
+    ...normalizarAlimento(raw),
+  } as Alimento;
+}
+
 export function useAlimentos() {
   const [alimentos, setAlimentos] = useState<Alimento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,16 +38,7 @@ export function useAlimentos() {
       q,
       (snap) => {
         setError(null);
-        setAlimentos(
-          snap.docs.map((d) => {
-            const raw = d.data();
-            return {
-              id: d.id,
-              ...raw,
-              ...normalizarAlimento(raw as Record<string, unknown>),
-            } as Alimento;
-          })
-        );
+        setAlimentos(snap.docs.map((d) => mapDoc({ id: d.id, data: () => d.data() })));
         setLoading(false);
       },
       (err) => {
@@ -51,16 +51,16 @@ export function useAlimentos() {
   }, []);
 
   const buscarPorCodigo = async (codigo: string): Promise<Alimento | null> => {
-    const q = query(collection(db, COL), where('codigoBarras', '==', codigo));
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-    const d = snap.docs[0];
-    const raw = d.data();
-    return {
-      id: d.id,
-      ...raw,
-      ...normalizarAlimento(raw as Record<string, unknown>),
-    } as Alimento;
+    const c = codigo.trim();
+    if (!c) return null;
+
+    let snap = await getDocs(query(collection(db, COL), where('codigoBarras', '==', c)));
+    if (!snap.empty) return mapDoc({ id: snap.docs[0].id, data: () => snap.docs[0].data() });
+
+    snap = await getDocs(query(collection(db, COL), where('codigoBarras2', '==', c)));
+    if (!snap.empty) return mapDoc({ id: snap.docs[0].id, data: () => snap.docs[0].data() });
+
+    return null;
   };
 
   const agregar = async (data: Omit<Alimento, 'id' | 'createdAt'>) => {
@@ -68,6 +68,12 @@ export function useAlimentos() {
     if (!data.esCaja) {
       delete payload.esCaja;
       delete payload.unidadesPorCaja;
+    }
+    if (!data.codigoBarras2?.trim()) {
+      delete payload.codigoBarras2;
+    }
+    if (data.stock == null || data.stock < 1) {
+      delete payload.stock;
     }
     await addDoc(collection(db, COL), payload);
   };
@@ -77,6 +83,9 @@ export function useAlimentos() {
     if (!data.esCaja) {
       payload.esCaja = false;
       payload.unidadesPorCaja = deleteField();
+    }
+    if (!data.codigoBarras2?.trim()) {
+      payload.codigoBarras2 = deleteField();
     }
     await updateDoc(doc(db, COL, id), payload);
   };

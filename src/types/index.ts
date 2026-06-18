@@ -20,6 +20,8 @@ export interface Beneficiario extends BeneficiarioInput {
 export interface Alimento {
   id: string;
   codigoBarras: string;
+  /** Segundo código de barras opcional (mismo producto) */
+  codigoBarras2?: string;
   nombre: string;
   /** Si el producto contiene azúcar o es perjudicial para diabéticos */
   contieneAzucar: boolean;
@@ -27,6 +29,8 @@ export interface Alimento {
   /** Opcional: se reparte por cajas y cada caja trae N unidades */
   esCaja?: boolean;
   unidadesPorCaja?: number;
+  /** Unidades totales disponibles (cajas × unidades/caja o unidades sueltas) */
+  stock?: number;
   createdAt: number;
 }
 

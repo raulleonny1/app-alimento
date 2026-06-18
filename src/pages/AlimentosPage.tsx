@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAlimentos } from '../hooks/useAlimentos';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
-import { esProductoCaja } from '../lib/alimento';
+import { esProductoCaja, etiquetaCodigos } from '../lib/alimento';
 import type { Alimento } from '../types';
 
 export function AlimentosPage() {
@@ -32,7 +32,10 @@ export function AlimentosPage() {
     }
   };
 
-  const handleGuardar = async (data: Omit<Alimento, 'id' | 'createdAt'>) => {
+  const handleGuardar = async (
+    data: Omit<Alimento, 'id' | 'createdAt'>,
+    _extras?: { cantidadIngresada: number }
+  ) => {
     if (editando) {
       await actualizar(editando.id, data);
     } else {
@@ -101,10 +104,13 @@ export function AlimentosPage() {
                 <strong>{a.nombre}</strong>
                 {a.contieneAzucar && <span className="badge warning">Azúcar</span>}
               </div>
-              <p className="barcode-display">📊 {a.codigoBarras}</p>
+              <p className="barcode-display">📊 {etiquetaCodigos(a)}</p>
               <p className="meta">Unidad: {a.unidad}</p>
               {esProductoCaja(a) && (
                 <p className="meta">Caja con {a.unidadesPorCaja} unidades</p>
+              )}
+              {a.stock != null && a.stock > 0 && (
+                <p className="meta">Disponible: {a.stock} unidades</p>
               )}
               <div className="list-actions">
                 <button className="btn-text" onClick={() => abrirRegistro(undefined, a)}>
