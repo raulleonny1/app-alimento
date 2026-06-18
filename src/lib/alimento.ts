@@ -40,9 +40,18 @@ export function etiquetaCantidadIngreso(alimento: Alimento): string {
 export function resumenCantidad(alimento: Alimento, cantidadIngresada: number): string {
   if (esProductoCaja(alimento)) {
     const total = unidadesTotales(alimento, cantidadIngresada);
-    return `${cantidadIngresada} caja(s) × ${alimento.unidadesPorCaja} = ${total} unidades`;
+    return `${cantidadIngresada} caja(s) × ${alimento.unidadesPorCaja} ${alimento.unidad} = ${total} ${alimento.unidad}`;
   }
   return `${cantidadIngresada} ${alimento.unidad}`;
+}
+
+export function resumenStock(alimento: Alimento): string {
+  if (!alimento.stock || alimento.stock < 1) return '';
+  if (esProductoCaja(alimento) && alimento.unidadesPorCaja) {
+    const cajas = Math.floor(alimento.stock / alimento.unidadesPorCaja);
+    return `Ingresado: ${cajas} caja(s) (${alimento.stock} ${alimento.unidad})`;
+  }
+  return `Ingresado: ${alimento.stock} ${alimento.unidad}`;
 }
 
 export function normalizarAlimento(data: Record<string, unknown>): Partial<Alimento> {

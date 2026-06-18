@@ -272,6 +272,16 @@ body {
   border-color: transparent;
 }
 
+.total-ingreso {
+  margin: 0 0 14px;
+  padding: 12px;
+  background: var(--green-50, #ecfdf5);
+  border: 1px solid var(--green-200, #a7f3d0);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
 .highlight-field span {
   color: var(--green-700);
   font-size: 0.9rem;

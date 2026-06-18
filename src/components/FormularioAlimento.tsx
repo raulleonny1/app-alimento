@@ -13,6 +13,20 @@ interface Props {
   titulo?: string;
 }
 
+const UNIDADES = [
+  { value: 'lata', label: 'Lata' },
+  { value: 'paquete', label: 'Paquete' },
+  { value: 'unidad', label: 'Unidad' },
+  { value: 'kg', label: 'Kilogramo (kg)' },
+  { value: 'g', label: 'Gramo (g)' },
+  { value: 'litro', label: 'Litro' },
+];
+
+function numCajasDesdeStock(a: Alimento): string {
+  if (!a.stock || !a.esCaja || !a.unidadesPorCaja) return '1';
+  return String(Math.max(1, Math.floor(a.stock / a.unidadesPorCaja)));
+}
+
 export function FormularioAlimento({
   codigoInicial,
   alimentoExistente,
@@ -20,6 +34,8 @@ export function FormularioAlimento({
   onCancelar,
   titulo,
 }: Props) {
+  const vieneEnCajas = alimentoExistente?.esCaja ?? true;
+
   const [codigoBarras, setCodigoBarras] = useState(
     alimentoExistente?.codigoBarras ?? codigoInicial ?? ''
   );
@@ -28,26 +44,25 @@ export function FormularioAlimento({
   const [contieneAzucar, setContieneAzucar] = useState(
     alimentoExistente?.contieneAzucar ?? false
   );
-  const [unidad, setUnidad] = useState(alimentoExistente?.unidad ?? 'unidad');
-  const [tipoIngreso, setTipoIngreso] = useState<'unidad' | 'caja'>(
-    alimentoExistente?.esCaja ? 'caja' : 'unidad'
+  const [esCaja, setEsCaja] = useState(vieneEnCajas);
+  const [unidad, setUnidad] = useState(alimentoExistente?.unidad ?? 'lata');
+  const [numCajas, setNumCajas] = useState(
+    alimentoExistente ? (vieneEnCajas ? numCajasDesdeStock(alimentoExistente) : '1') : '1'
   );
   const [unidadesPorCaja, setUnidadesPorCaja] = useState(
-    alimentoExistente?.unidadesPorCaja?.toString() ?? '1'
+    alimentoExistente?.unidadesPorCaja?.toString() ?? '12'
   );
-  const [cantidad, setCantidad] = useState(
-    alimentoExistente?.stock
-      ? String(
-          alimentoExistente.esCaja && alimentoExistente.unidadesPorCaja
-            ? Math.floor(alimentoExistente.stock / alimentoExistente.unidadesPorCaja) ||
-                alimentoExistente.stock
-            : alimentoExistente.stock
-        )
-      : '1'
+  const [cantidadSueltas, setCantidadSueltas] = useState(
+    alimentoExistente && !vieneEnCajas ? String(alimentoExistente.stock ?? 1) : '1'
   );
   const [guardando, setGuardando] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [scanTarget, setScanTarget] = useState<'1' | '2'>('1');
+
+  const cajas = parseInt(numCajas, 10) || 0;
+  const porCaja = parseInt(unidadesPorCaja, 10) || 0;
+  const totalUnidades = esCaja ? cajas * porCaja : parseInt(cantidadSueltas, 10) || 0;
+  const etiquetaUnidad = UNIDADES.find((u) => u.value === unidad)?.label.toLowerCase() ?? unidad;
 
   const abrirScanner = (target: '1' | '2') => {
     setScanTarget(target);
@@ -70,41 +85,43 @@ export function FormularioAlimento({
       return;
     }
 
-    const qty = parseInt(cantidad, 10);
-    if (!qty || qty < 1) {
-      alert('Indica cuántas unidades o cajas vas a ingresar (mínimo 1).');
-      return;
-    }
-
     const data: Omit<Alimento, 'id' | 'createdAt'> = {
       codigoBarras: codigoBarras.trim(),
       nombre: nombre.trim(),
       contieneAzucar,
       unidad,
     };
-
     if (c2) data.codigoBarras2 = c2;
 
-    if (tipoIngreso === 'caja') {
-      const porCaja = parseInt(unidadesPorCaja, 10);
-      if (!porCaja || porCaja < 1) {
-        alert('Indica cuántas unidades trae cada caja (mínimo 1).');
+    let cantidadIngresada = 1;
+
+    if (esCaja) {
+      if (cajas < 1) {
+        alert('Indica cuántas cajas recibiste (mínimo 1).');
+        return;
+      }
+      if (porCaja < 1) {
+        alert(`Indica cuántas ${etiquetaUnidad}s trae cada caja (mínimo 1).`);
         return;
       }
       data.esCaja = true;
       data.unidadesPorCaja = porCaja;
-      data.stock = qty * porCaja;
+      data.stock = cajas * porCaja;
+      cantidadIngresada = cajas;
     } else {
-      data.stock = qty;
+      const sueltas = parseInt(cantidadSueltas, 10);
+      if (!sueltas || sueltas < 1) {
+        alert('Indica cuántas unidades recibiste (mínimo 1).');
+        return;
+      }
+      data.stock = sueltas;
+      cantidadIngresada = sueltas;
     }
 
     setGuardando(true);
-    await onGuardar(data, { cantidadIngresada: qty });
+    await onGuardar(data, { cantidadIngresada });
     setGuardando(false);
   };
-
-  const etiquetaCantidad =
-    tipoIngreso === 'caja' ? 'Cuántas cajas vas a ingresar' : 'Cuántas unidades vas a ingresar';
 
   return (
     <>
@@ -163,60 +180,91 @@ export function FormularioAlimento({
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej: Arroz 1kg"
+            placeholder="Ej: Atún en lata"
             required
             autoFocus={!!codigoBarras && !alimentoExistente}
           />
         </label>
 
-        <label className="field">
-          <span>Unidad de medida</span>
-          <select value={unidad} onChange={(e) => setUnidad(e.target.value)}>
-            <option value="unidad">Unidad</option>
-            <option value="kg">Kilogramo (kg)</option>
-            <option value="g">Gramo (g)</option>
-            <option value="litro">Litro</option>
-            <option value="paquete">Paquete</option>
-            <option value="lata">Lata</option>
-          </select>
-        </label>
-
-        <label className="field">
-          <span>¿Cómo lo ingresas?</span>
-          <select
-            value={tipoIngreso}
-            onChange={(e) => setTipoIngreso(e.target.value as 'unidad' | 'caja')}
-          >
-            <option value="unidad">Por unidad suelta</option>
-            <option value="caja">Por caja</option>
-          </select>
-        </label>
-
-        {tipoIngreso === 'caja' && (
-          <label className="field">
-            <span>Unidades que trae cada caja</span>
-            <input
-              type="number"
-              min={1}
-              value={unidadesPorCaja}
-              onChange={(e) => setUnidadesPorCaja(e.target.value)}
-              placeholder="Ej: 12 latas por caja"
-              required
-            />
-          </label>
-        )}
-
-        <label className="field highlight-field">
-          <span>{etiquetaCantidad}</span>
+        <label className="checkbox-field">
           <input
-            type="number"
-            min={1}
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            placeholder={tipoIngreso === 'caja' ? 'Ej: 5 cajas' : 'Ej: 24 unidades'}
-            required
+            type="checkbox"
+            checked={esCaja}
+            onChange={(e) => setEsCaja(e.target.checked)}
           />
+          <span>Viene en cajas (lo habitual)</span>
         </label>
+
+        {esCaja ? (
+          <>
+            <label className="field highlight-field">
+              <span>Cuántas cajas recibiste</span>
+              <input
+                type="number"
+                min={1}
+                value={numCajas}
+                onChange={(e) => setNumCajas(e.target.value)}
+                placeholder="Ej: 5 cajas"
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Qué trae cada caja</span>
+              <select value={unidad} onChange={(e) => setUnidad(e.target.value)}>
+                {UNIDADES.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field highlight-field">
+              <span>Cuántas {etiquetaUnidad}s trae cada caja</span>
+              <input
+                type="number"
+                min={1}
+                value={unidadesPorCaja}
+                onChange={(e) => setUnidadesPorCaja(e.target.value)}
+                placeholder={`Ej: 12 ${etiquetaUnidad}s por caja`}
+                required
+              />
+            </label>
+
+            {cajas > 0 && porCaja > 0 && (
+              <p className="total-ingreso">
+                Total: <strong>{cajas} caja(s)</strong> × <strong>{porCaja} {etiquetaUnidad}(s)</strong>{' '}
+                = <strong>{totalUnidades} {etiquetaUnidad}(s)</strong>
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <label className="field">
+              <span>Unidad de medida</span>
+              <select value={unidad} onChange={(e) => setUnidad(e.target.value)}>
+                {UNIDADES.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field highlight-field">
+              <span>Cuántas unidades recibiste</span>
+              <input
+                type="number"
+                min={1}
+                value={cantidadSueltas}
+                onChange={(e) => setCantidadSueltas(e.target.value)}
+                placeholder="Ej: 24 unidades sueltas"
+                required
+              />
+            </label>
+          </>
+        )}
 
         <label className="checkbox-field highlight">
           <input

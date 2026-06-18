@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAlimentos } from '../hooks/useAlimentos';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
-import { esProductoCaja, etiquetaCodigos } from '../lib/alimento';
+import { etiquetaCodigos, resumenStock } from '../lib/alimento';
 import type { Alimento } from '../types';
 
 export function AlimentosPage() {
@@ -106,11 +106,8 @@ export function AlimentosPage() {
               </div>
               <p className="barcode-display">📊 {etiquetaCodigos(a)}</p>
               <p className="meta">Unidad: {a.unidad}</p>
-              {esProductoCaja(a) && (
-                <p className="meta">Caja con {a.unidadesPorCaja} unidades</p>
-              )}
               {a.stock != null && a.stock > 0 && (
-                <p className="meta">Disponible: {a.stock} unidades</p>
+                <p className="meta">{resumenStock(a)}</p>
               )}
               <div className="list-actions">
                 <button className="btn-text" onClick={() => abrirRegistro(undefined, a)}>
