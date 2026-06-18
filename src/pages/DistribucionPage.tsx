@@ -26,8 +26,10 @@ export function DistribucionPage() {
   } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [registrarCodigo, setRegistrarCodigo] = useState<string | null>(null);
+  const [detalleTitulares, setDetalleTitulares] = useState(false);
 
   const loading = loadingAlimentos || loadingBenef;
+  const totalPersonasFamilia = beneficiarios.reduce((s, b) => s + b.numMiembrosFamilia, 0);
 
   const agregarProducto = (alimentoId: string) => {
     const existe = productos.find((p) => p.alimentoId === alimentoId);
@@ -120,10 +122,15 @@ export function DistribucionPage() {
       </div>
 
       <div className="stats-row">
-        <div className="stat-card">
+        <button
+          type="button"
+          className={`stat-card stat-card-btn${detalleTitulares ? ' active' : ''}`}
+          onClick={() => setDetalleTitulares(!detalleTitulares)}
+        >
           <span className="stat-num">{beneficiarios.length}</span>
-          <span className="stat-label">Beneficiados</span>
-        </div>
+          <span className="stat-label">Titulares</span>
+          <span className="stat-hint">Toca para ver familias</span>
+        </button>
         <div className="stat-card">
           <span className="stat-num">
             {beneficiarios.filter((b) => !b.tieneRestriccionAzucar).length}
@@ -137,6 +144,25 @@ export function DistribucionPage() {
           <span className="stat-label">Con diabetes</span>
         </div>
       </div>
+
+      {detalleTitulares && (
+        <div className="card detalle-titulares">
+          <p className="detalle-titulares-total">
+            <strong>{beneficiarios.length}</strong> titulares ·{' '}
+            <strong>{totalPersonasFamilia}</strong> personas en total (unidad familiar)
+          </p>
+          <ul className="titulares-lista">
+            {beneficiarios.map((b) => (
+              <li key={b.id}>
+                <span className="titular-nombre">{b.nombre}</span>
+                <span className="titular-miembros">
+                  {b.numMiembrosFamilia} {b.numMiembrosFamilia === 1 ? 'miembro' : 'miembros'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!resultado && (
         <>

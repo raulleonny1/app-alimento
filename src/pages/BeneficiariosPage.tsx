@@ -207,7 +207,7 @@ export function BeneficiariosPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h2>Beneficiados ({beneficiarios.length})</h2>
+        <h2>Titulares ({beneficiarios.length})</h2>
         {!mostrarForm && !editando && (
           <button className="btn primary" onClick={() => setMostrarForm(true)}>
             + Nuevo
