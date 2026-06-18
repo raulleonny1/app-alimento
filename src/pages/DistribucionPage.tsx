@@ -9,6 +9,7 @@ import {
   etiquetaCantidadIngreso,
   esProductoCaja,
   etiquetaCodigos,
+  mensajeCodigoDuplicado,
   resumenCantidad,
   unidadesTotales,
 } from '../lib/alimento';
@@ -21,7 +22,8 @@ interface ProductoCantidad {
 }
 
 export function DistribucionPage() {
-  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, agregar, error: errorAli } = useAlimentos();
+  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, verificarCodigosUnicos, agregar, error: errorAli } =
+    useAlimentos();
   const { beneficiarios, loading: loadingBenef, error: errorBenef } = useBeneficiarios();
   const { guardar, error: errorDist } = useDistribuciones();
 
@@ -66,6 +68,18 @@ export function DistribucionPage() {
     data: Omit<Alimento, 'id' | 'createdAt'>,
     extras?: { cantidadIngresada: number }
   ) => {
+    const dup = await verificarCodigosUnicos(data.codigoBarras, data.codigoBarras2);
+    if (dup) {
+      const usarExistente = confirm(
+        `${mensajeCodigoDuplicado(dup.alimento, dup.codigo)}\n\nSi aceptas, se usará el producto ya registrado en esta distribución.`
+      );
+      setRegistrarCodigo(null);
+      if (usarExistente) {
+        agregarProducto(dup.alimento.id, extras?.cantidadIngresada ?? 1);
+      }
+      return;
+    }
+
     await agregar(data);
     const nuevo =
       (await buscarPorCodigo(data.codigoBarras)) ??
@@ -216,8 +230,14 @@ export function DistribucionPage() {
 
           {registrarCodigo && (
             <FormularioAlimento
+              key={registrarCodigo}
               codigoInicial={registrarCodigo}
               titulo="Producto no registrado — agrégalo aquí"
+              verificarCodigosUnicos={verificarCodigosUnicos}
+              onEditarExistente={(alimento) => {
+                setRegistrarCodigo(null);
+                agregarProducto(alimento.id);
+              }}
               onGuardar={handleRegistrarNuevo}
               onCancelar={() => setRegistrarCodigo(null)}
             />

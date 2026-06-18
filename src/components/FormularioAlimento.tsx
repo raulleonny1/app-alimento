@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { BarcodeScanner } from './BarcodeScanner';
 import type { Alimento } from '../types';
+import { mensajeCodigoDuplicado } from '../lib/alimento';
 
 interface Props {
   codigoInicial?: string;
   alimentoExistente?: Alimento | null;
+  verificarCodigosUnicos?: (
+    codigoBarras: string,
+    codigoBarras2?: string,
+    excluirId?: string
+  ) => Promise<{ alimento: Alimento; codigo: string } | null>;
+  onEditarExistente?: (alimento: Alimento) => void;
   onGuardar: (
     data: Omit<Alimento, 'id' | 'createdAt'>,
     extras?: { cantidadIngresada: number }
@@ -30,6 +37,8 @@ function numCajasDesdeStock(a: Alimento): string {
 export function FormularioAlimento({
   codigoInicial,
   alimentoExistente,
+  verificarCodigosUnicos,
+  onEditarExistente,
   onGuardar,
   onCancelar,
   titulo,
@@ -72,10 +81,35 @@ export function FormularioAlimento({
     setMostrarScanner(true);
   };
 
-  const handleScan = (code: string) => {
+  const handleScan = async (code: string) => {
     setMostrarScanner(false);
-    if (scanTarget === '1') setCodigoBarras(code);
-    else setCodigoBarras2(code);
+    const c = code.trim();
+    if (!c) return;
+
+    if (verificarCodigosUnicos) {
+      const dup = await verificarCodigosUnicos(c, undefined, alimentoExistente?.id);
+      if (dup) {
+        if (confirm(mensajeCodigoDuplicado(dup.alimento, dup.codigo))) {
+          onEditarExistente?.(dup.alimento);
+        }
+        return;
+      }
+    }
+
+    if (scanTarget === '1') setCodigoBarras(c);
+    else setCodigoBarras2(c);
+  };
+
+  const revisarCodigoDuplicado = async (codigo: string) => {
+    const c = codigo.trim();
+    if (!c || !verificarCodigosUnicos) return;
+
+    const dup = await verificarCodigosUnicos(c, undefined, alimentoExistente?.id);
+    if (!dup || dup.codigo !== c) return;
+
+    if (confirm(mensajeCodigoDuplicado(dup.alimento, dup.codigo))) {
+      onEditarExistente?.(dup.alimento);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,6 +120,20 @@ export function FormularioAlimento({
     if (c2 && c2 === codigoBarras.trim()) {
       alert('El segundo código debe ser distinto al primero.');
       return;
+    }
+
+    if (verificarCodigosUnicos) {
+      const dup = await verificarCodigosUnicos(
+        codigoBarras.trim(),
+        c2 || undefined,
+        alimentoExistente?.id
+      );
+      if (dup) {
+        if (confirm(mensajeCodigoDuplicado(dup.alimento, dup.codigo))) {
+          onEditarExistente?.(dup.alimento);
+        }
+        return;
+      }
     }
 
     const data: Omit<Alimento, 'id' | 'createdAt'> = {
@@ -143,6 +191,7 @@ export function FormularioAlimento({
               inputMode="numeric"
               value={codigoBarras}
               onChange={(e) => setCodigoBarras(e.target.value)}
+              onBlur={(e) => revisarCodigoDuplicado(e.target.value)}
               placeholder="Escanear o escribir"
               required
             />
@@ -165,6 +214,7 @@ export function FormularioAlimento({
               inputMode="numeric"
               value={codigoBarras2}
               onChange={(e) => setCodigoBarras2(e.target.value)}
+              onBlur={(e) => revisarCodigoDuplicado(e.target.value)}
               placeholder="Otro código del mismo producto"
             />
             <button

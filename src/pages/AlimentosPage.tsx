@@ -6,7 +6,8 @@ import { etiquetaCodigos, resumenStock } from '../lib/alimento';
 import type { Alimento } from '../types';
 
 export function AlimentosPage() {
-  const { alimentos, loading, buscarPorCodigo, agregar, actualizar, eliminar } = useAlimentos();
+  const { alimentos, loading, buscarPorCodigo, verificarCodigosUnicos, agregar, actualizar, eliminar } =
+    useAlimentos();
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [codigoEscaneado, setCodigoEscaneado] = useState<string | null>(null);
@@ -36,6 +37,19 @@ export function AlimentosPage() {
     data: Omit<Alimento, 'id' | 'createdAt'>,
     _extras?: { cantidadIngresada: number }
   ) => {
+    const dup = await verificarCodigosUnicos(
+      data.codigoBarras,
+      data.codigoBarras2,
+      editando?.id
+    );
+    if (dup) {
+      if (confirm(`El código ${dup.codigo} ya existe en "${dup.alimento.nombre}". ¿Deseas editarlo?`)) {
+        setEditando(dup.alimento);
+        setCodigoEscaneado(null);
+      }
+      return;
+    }
+
     if (editando) {
       await actualizar(editando.id, data);
     } else {
@@ -44,6 +58,11 @@ export function AlimentosPage() {
     setMostrarForm(false);
     setCodigoEscaneado(null);
     setEditando(null);
+  };
+
+  const handleEditarExistente = (alimento: Alimento) => {
+    setEditando(alimento);
+    setCodigoEscaneado(null);
   };
 
   if (loading || buscando) return <p className="loading">Cargando...</p>;
@@ -79,8 +98,11 @@ export function AlimentosPage() {
 
       {mostrarForm && (
         <FormularioAlimento
+          key={editando?.id ?? codigoEscaneado ?? 'nuevo'}
           codigoInicial={codigoEscaneado ?? undefined}
           alimentoExistente={editando}
+          verificarCodigosUnicos={verificarCodigosUnicos}
+          onEditarExistente={handleEditarExistente}
           onGuardar={handleGuardar}
           onCancelar={() => {
             setMostrarForm(false);

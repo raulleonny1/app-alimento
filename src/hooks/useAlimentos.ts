@@ -54,12 +54,33 @@ export function useAlimentos() {
     const c = codigo.trim();
     if (!c) return null;
 
+    const enMemoria = alimentos.find((a) => a.codigoBarras === c || a.codigoBarras2 === c);
+    if (enMemoria) return enMemoria;
+
     let snap = await getDocs(query(collection(db, COL), where('codigoBarras', '==', c)));
     if (!snap.empty) return mapDoc({ id: snap.docs[0].id, data: () => snap.docs[0].data() });
 
     snap = await getDocs(query(collection(db, COL), where('codigoBarras2', '==', c)));
     if (!snap.empty) return mapDoc({ id: snap.docs[0].id, data: () => snap.docs[0].data() });
 
+    return null;
+  };
+
+  const verificarCodigosUnicos = async (
+    codigoBarras: string,
+    codigoBarras2?: string,
+    excluirId?: string
+  ): Promise<{ alimento: Alimento; codigo: string } | null> => {
+    const codigos = [codigoBarras.trim(), codigoBarras2?.trim()].filter((c): c is string =>
+      Boolean(c)
+    );
+
+    for (const c of codigos) {
+      const existente = await buscarPorCodigo(c);
+      if (existente && existente.id !== excluirId) {
+        return { alimento: existente, codigo: c };
+      }
+    }
     return null;
   };
 
@@ -100,5 +121,5 @@ export function useAlimentos() {
     await deleteDoc(doc(db, COL, id));
   };
 
-  return { alimentos, loading, error, buscarPorCodigo, agregar, actualizar, eliminar };
+  return { alimentos, loading, error, buscarPorCodigo, verificarCodigosUnicos, agregar, actualizar, eliminar };
 }

@@ -45,6 +45,10 @@ export function resumenCantidad(alimento: Alimento, cantidadIngresada: number): 
   return `${cantidadIngresada} ${alimento.unidad}`;
 }
 
+export function mensajeCodigoDuplicado(alimento: Alimento, codigo: string): string {
+  return `El código ${codigo} ya está registrado como "${alimento.nombre}". ¿Deseas editarlo?`;
+}
+
 export function resumenStock(alimento: Alimento): string {
   if (!alimento.stock || alimento.stock < 1) return '';
   if (esProductoCaja(alimento) && alimento.unidadesPorCaja) {
