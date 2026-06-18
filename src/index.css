@@ -371,6 +371,48 @@ body {
   padding: 2px 0;
 }
 
+.salud-aviso {
+  background: var(--orange-100);
+  color: var(--orange-600);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.alerta-inline {
+  background: var(--orange-100);
+  color: var(--orange-600);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.salud-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.hoja-referencia {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.hoja-referencia summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green-700);
+}
+
+.hoja-img {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
 .info-banner {
   background: var(--green-100);
   color: var(--green-700);

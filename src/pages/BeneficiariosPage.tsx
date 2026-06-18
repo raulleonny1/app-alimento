@@ -1,12 +1,33 @@
 import { useState } from 'react';
 import { useBeneficiarios } from '../hooks/useBeneficiarios';
-import type { Beneficiario, Familiar } from '../types';
+import type { Beneficiario, BeneficiarioInput } from '../types';
+import { etiquetasSalud } from '../lib/beneficiario';
 
-const familiarVacio = (): Familiar => ({
+const vacio = (): BeneficiarioInput => ({
+  expediente: '',
   nombre: '',
-  tieneDiabetes: false,
-  sensibleAzucar: false,
+  dni: '',
+  telefono: '',
+  numMiembrosFamilia: 1,
+  tieneDiabetesEnFamilia: false,
+  sensibleAzucarEnFamilia: false,
+  otraEnfermedad: false,
+  descripcionEnfermedad: '',
 });
+
+function desdeBeneficiario(b: Beneficiario): BeneficiarioInput {
+  return {
+    expediente: b.expediente,
+    nombre: b.nombre,
+    dni: b.dni,
+    telefono: b.telefono,
+    numMiembrosFamilia: b.numMiembrosFamilia,
+    tieneDiabetesEnFamilia: b.tieneDiabetesEnFamilia,
+    sensibleAzucarEnFamilia: b.sensibleAzucarEnFamilia,
+    otraEnfermedad: b.otraEnfermedad,
+    descripcionEnfermedad: b.descripcionEnfermedad,
+  };
+}
 
 function FormularioBeneficiario({
   inicial,
@@ -14,34 +35,30 @@ function FormularioBeneficiario({
   onCancelar,
 }: {
   inicial?: Beneficiario;
-  onGuardar: (nombre: string, familiares: Familiar[]) => Promise<void>;
+  onGuardar: (data: BeneficiarioInput) => Promise<void>;
   onCancelar: () => void;
 }) {
-  const [nombre, setNombre] = useState(inicial?.nombre ?? '');
-  const [familiares, setFamiliares] = useState<Familiar[]>(
-    inicial?.familiares?.length ? inicial.familiares : [familiarVacio()]
+  const [form, setForm] = useState<BeneficiarioInput>(
+    inicial ? desdeBeneficiario(inicial) : vacio()
   );
   const [guardando, setGuardando] = useState(false);
 
-  const agregarFamiliar = () => setFamiliares([...familiares, familiarVacio()]);
-
-  const actualizarFamiliar = (index: number, campo: keyof Familiar, valor: string | boolean) => {
-    const copia = [...familiares];
-    copia[index] = { ...copia[index], [campo]: valor };
-    setFamiliares(copia);
-  };
-
-  const eliminarFamiliar = (index: number) => {
-    if (familiares.length <= 1) return;
-    setFamiliares(familiares.filter((_, i) => i !== index));
+  const setCampo = <K extends keyof BeneficiarioInput>(campo: K, valor: BeneficiarioInput[K]) => {
+    setForm((prev) => ({ ...prev, [campo]: valor }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim()) return;
-    const fams = familiares.filter((f) => f.nombre.trim());
+    if (!form.nombre.trim() || !form.expediente.trim()) return;
     setGuardando(true);
-    await onGuardar(nombre.trim(), fams);
+    await onGuardar({
+      ...form,
+      expediente: form.expediente.trim(),
+      nombre: form.nombre.trim(),
+      dni: form.dni.trim(),
+      telefono: form.telefono.trim(),
+      descripcionEnfermedad: form.descripcionEnfermedad.trim(),
+    });
     setGuardando(false);
   };
 
@@ -50,57 +67,113 @@ function FormularioBeneficiario({
       <h3>{inicial ? 'Editar beneficiado' : 'Nuevo beneficiado'}</h3>
 
       <label className="field">
-        <span>Nombre del beneficiado</span>
+        <span>N° Expediente</span>
         <input
           type="text"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder="Ej: María García"
+          inputMode="numeric"
+          value={form.expediente}
+          onChange={(e) => setCampo('expediente', e.target.value)}
+          placeholder="Ej: 28094015"
+          required
+        />
+      </label>
+
+      <label className="field">
+        <span>Nombre y apellidos del titular</span>
+        <input
+          type="text"
+          value={form.nombre}
+          onChange={(e) => setCampo('nombre', e.target.value)}
+          placeholder="Ej: Pedro Del Rio Rodríguez"
+          required
+        />
+      </label>
+
+      <label className="field">
+        <span>DNI / NIE / Pasaporte</span>
+        <input
+          type="text"
+          value={form.dni}
+          onChange={(e) => setCampo('dni', e.target.value.toUpperCase())}
+          placeholder="Ej: 06518286V"
+        />
+      </label>
+
+      <label className="field">
+        <span>Teléfono</span>
+        <input
+          type="tel"
+          inputMode="tel"
+          value={form.telefono}
+          onChange={(e) => setCampo('telefono', e.target.value)}
+          placeholder="Ej: 916774090"
+        />
+      </label>
+
+      <label className="field">
+        <span>N° miembros unidad familiar</span>
+        <input
+          type="number"
+          min={0}
+          value={form.numMiembrosFamilia}
+          onChange={(e) => setCampo('numMiembrosFamilia', parseInt(e.target.value) || 0)}
           required
         />
       </label>
 
       <div className="section-title">
-        <span>Familiares</span>
-        <button type="button" className="btn-text" onClick={agregarFamiliar}>
-          + Agregar
-        </button>
+        <span>Salud de la familia</span>
       </div>
 
-      {familiares.map((f, i) => (
-        <div key={i} className="familiar-card">
-          <label className="field">
-            <span>Nombre del familiar</span>
-            <input
-              type="text"
-              value={f.nombre}
-              onChange={(e) => actualizarFamiliar(i, 'nombre', e.target.value)}
-              placeholder="Ej: Juan (hijo)"
-            />
-          </label>
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={f.tieneDiabetes}
-              onChange={(e) => actualizarFamiliar(i, 'tieneDiabetes', e.target.checked)}
-            />
-            <span>Tiene diabetes</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={f.sensibleAzucar}
-              onChange={(e) => actualizarFamiliar(i, 'sensibleAzucar', e.target.checked)}
-            />
-            <span>Sensible al azúcar / no debe consumir azúcar</span>
-          </label>
-          {familiares.length > 1 && (
-            <button type="button" className="btn-text danger" onClick={() => eliminarFamiliar(i)}>
-              Eliminar familiar
-            </button>
-          )}
-        </div>
-      ))}
+      <p className="salud-aviso">
+        ⚠️ Indica si algún miembro de la familia tiene condiciones que afecten los alimentos que
+        puede recibir.
+      </p>
+
+      <label className="checkbox-field highlight">
+        <input
+          type="checkbox"
+          checked={form.tieneDiabetesEnFamilia}
+          onChange={(e) => setCampo('tieneDiabetesEnFamilia', e.target.checked)}
+        />
+        <span>Algún familiar tiene diabetes</span>
+      </label>
+
+      <label className="checkbox-field highlight">
+        <input
+          type="checkbox"
+          checked={form.sensibleAzucarEnFamilia}
+          onChange={(e) => setCampo('sensibleAzucarEnFamilia', e.target.checked)}
+        />
+        <span>Algún familiar es sensible al azúcar / no debe consumir azúcar</span>
+      </label>
+
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={form.otraEnfermedad}
+          onChange={(e) => setCampo('otraEnfermedad', e.target.checked)}
+        />
+        <span>Otra enfermedad en la familia</span>
+      </label>
+
+      {form.otraEnfermedad && (
+        <label className="field">
+          <span>¿Cuál enfermedad o restricción?</span>
+          <input
+            type="text"
+            value={form.descripcionEnfermedad}
+            onChange={(e) => setCampo('descripcionEnfermedad', e.target.value)}
+            placeholder="Ej: Hipertensión, alergia, celiaquía..."
+          />
+        </label>
+      )}
+
+      {(form.tieneDiabetesEnFamilia || form.sensibleAzucarEnFamilia) && (
+        <p className="alerta-inline">
+          Este beneficiado <strong>no recibirá</strong> productos con azúcar en la distribución.
+        </p>
+      )}
 
       <div className="form-actions">
         <button type="button" className="btn secondary" onClick={onCancelar}>
@@ -115,18 +188,26 @@ function FormularioBeneficiario({
 }
 
 export function BeneficiariosPage() {
-  const { beneficiarios, loading, agregar, actualizar, eliminar } = useBeneficiarios();
+  const { beneficiarios, loading, agregar, actualizar, eliminar, importarHoja } = useBeneficiarios();
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState<Beneficiario | null>(null);
+  const [importando, setImportando] = useState(false);
 
-  const handleGuardar = async (nombre: string, familiares: Familiar[]) => {
+  const handleGuardar = async (data: BeneficiarioInput) => {
     if (editando) {
-      await actualizar(editando.id, nombre, familiares);
+      await actualizar(editando.id, data);
       setEditando(null);
     } else {
-      await agregar(nombre, familiares);
+      await agregar(data);
     }
     setMostrarForm(false);
+  };
+
+  const handleImportar = async () => {
+    if (!confirm('¿Cargar los 13 beneficiados de la hoja de firmas?')) return;
+    setImportando(true);
+    await importarHoja();
+    setImportando(false);
   };
 
   if (loading) return <p className="loading">Cargando...</p>;
@@ -142,10 +223,16 @@ export function BeneficiariosPage() {
         )}
       </div>
 
-      <p className="info-banner">
-        Registra si algún familiar tiene diabetes o no puede consumir azúcar. Esos beneficiados no
-        recibirán alimentos con azúcar en la distribución.
-      </p>
+      <details className="card hoja-referencia">
+        <summary>Ver hoja de referencia</summary>
+        <img src="/beneficiados.jpeg" alt="Hoja de firmas - kilos entrega" className="hoja-img" />
+      </details>
+
+      {beneficiarios.length === 0 && !mostrarForm && !editando && (
+        <button className="btn secondary large" onClick={handleImportar} disabled={importando}>
+          {importando ? 'Importando...' : '📋 Cargar beneficiados de la hoja'}
+        </button>
+      )}
 
       {(mostrarForm || editando) && (
         <FormularioBeneficiario
@@ -162,40 +249,43 @@ export function BeneficiariosPage() {
         {beneficiarios.length === 0 ? (
           <p className="empty">No hay beneficiados registrados</p>
         ) : (
-          beneficiarios.map((b) => (
-            <div key={b.id} className="card list-item">
-              <div className="list-item-header">
-                <strong>{b.nombre}</strong>
-                {b.tieneRestriccionAzucar && (
-                  <span className="badge warning">Sin azúcar</span>
+          beneficiarios.map((b) => {
+            const salud = etiquetasSalud(b);
+            return (
+              <div key={b.id} className="card list-item">
+                <div className="list-item-header">
+                  <strong>{b.nombre}</strong>
+                  {b.tieneRestriccionAzucar && (
+                    <span className="badge warning">Sin azúcar</span>
+                  )}
+                </div>
+                <p className="meta">Expediente: {b.expediente || '—'}</p>
+                <p className="meta">DNI/NIE: {b.dni || '—'}</p>
+                <p className="meta">Teléfono: {b.telefono || '—'}</p>
+                <p className="meta">Miembros familia: {b.numMiembrosFamilia}</p>
+                {salud.length > 0 && (
+                  <div className="salud-tags">
+                    {salud.map((s) => (
+                      <span key={s} className="badge warning">{s}</span>
+                    ))}
+                  </div>
                 )}
+                <div className="list-actions">
+                  <button className="btn-text" onClick={() => setEditando(b)}>
+                    Editar
+                  </button>
+                  <button
+                    className="btn-text danger"
+                    onClick={() => {
+                      if (confirm(`¿Eliminar a ${b.nombre}?`)) eliminar(b.id);
+                    }}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
-              {b.familiares.length > 0 && (
-                <ul className="familiares-list">
-                  {b.familiares.map((f, i) => (
-                    <li key={i}>
-                      {f.nombre}
-                      {f.tieneDiabetes && ' — Diabetes'}
-                      {f.sensibleAzucar && ' — Sensible al azúcar'}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="list-actions">
-                <button className="btn-text" onClick={() => setEditando(b)}>
-                  Editar
-                </button>
-                <button
-                  className="btn-text danger"
-                  onClick={() => {
-                    if (confirm(`¿Eliminar a ${b.nombre}?`)) eliminar(b.id);
-                  }}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

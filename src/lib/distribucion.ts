@@ -32,6 +32,15 @@ export function calcularDistribucion(
     });
   }
 
+  const conOtraEnfermedad = beneficiarios.filter((b) => b.otraEnfermedad);
+  if (conOtraEnfermedad.length > 0) {
+    advertencias.push(
+      `⚠️ ${conOtraEnfermedad.length} beneficiario(s) con otra enfermedad: ${conOtraEnfermedad
+        .map((b) => `${b.nombre}${b.descripcionEnfermedad ? ` (${b.descripcionEnfermedad})` : ''}`)
+        .join(', ')}. Revisar alimentos asignados.`
+    );
+  }
+
   for (const { alimento, cantidadTotal } of productos) {
     const elegibles = beneficiariosElegibles(beneficiarios, alimento.contieneAzucar);
 

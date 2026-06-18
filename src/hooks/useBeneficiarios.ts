@@ -8,14 +8,19 @@ import {
   onSnapshot,
   query,
   orderBy,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Beneficiario, Familiar } from '../types';
+import type { Beneficiario, BeneficiarioInput } from '../types';
+import { BENEFICIARIOS_HOJA, calcularRestriccionAzucar, normalizarBeneficiario } from '../lib/beneficiario';
 
 const COL = 'beneficiarios';
 
-function calcularRestriccion(familiares: Familiar[]): boolean {
-  return familiares.some((f) => f.tieneDiabetes || f.sensibleAzucar);
+function aFirestore(data: BeneficiarioInput) {
+  return {
+    ...data,
+    tieneRestriccionAzucar: calcularRestriccionAzucar(data),
+  };
 }
 
 export function useBeneficiarios() {
@@ -26,33 +31,37 @@ export function useBeneficiarios() {
     const q = query(collection(db, COL), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setBeneficiarios(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Beneficiario)
+        snap.docs.map((d) => normalizarBeneficiario(d.id, d.data() as Record<string, unknown>))
       );
       setLoading(false);
     });
     return unsub;
   }, []);
 
-  const agregar = async (nombre: string, familiares: Familiar[]) => {
+  const agregar = async (data: BeneficiarioInput) => {
     await addDoc(collection(db, COL), {
-      nombre,
-      familiares,
-      tieneRestriccionAzucar: calcularRestriccion(familiares),
+      ...aFirestore(data),
       createdAt: Date.now(),
     });
   };
 
-  const actualizar = async (id: string, nombre: string, familiares: Familiar[]) => {
-    await updateDoc(doc(db, COL, id), {
-      nombre,
-      familiares,
-      tieneRestriccionAzucar: calcularRestriccion(familiares),
-    });
+  const actualizar = async (id: string, data: BeneficiarioInput) => {
+    await updateDoc(doc(db, COL, id), aFirestore(data));
   };
 
   const eliminar = async (id: string) => {
     await deleteDoc(doc(db, COL, id));
   };
 
-  return { beneficiarios, loading, agregar, actualizar, eliminar };
+  const importarHoja = async () => {
+    const batch = writeBatch(db);
+    const ahora = Date.now();
+    BENEFICIARIOS_HOJA.forEach((b, i) => {
+      const ref = doc(collection(db, COL));
+      batch.set(ref, { ...aFirestore(b), createdAt: ahora + i });
+    });
+    await batch.commit();
+  };
+
+  return { beneficiarios, loading, agregar, actualizar, eliminar, importarHoja };
 }

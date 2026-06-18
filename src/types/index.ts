@@ -1,13 +1,17 @@
-export interface Familiar {
+export interface BeneficiarioInput {
+  expediente: string;
   nombre: string;
-  tieneDiabetes: boolean;
-  sensibleAzucar: boolean;
+  dni: string;
+  telefono: string;
+  numMiembrosFamilia: number;
+  tieneDiabetesEnFamilia: boolean;
+  sensibleAzucarEnFamilia: boolean;
+  otraEnfermedad: boolean;
+  descripcionEnfermedad: string;
 }
 
-export interface Beneficiario {
+export interface Beneficiario extends BeneficiarioInput {
   id: string;
-  nombre: string;
-  familiares: Familiar[];
   /** true si algún familiar tiene diabetes o es sensible al azúcar */
   tieneRestriccionAzucar: boolean;
   createdAt: number;
