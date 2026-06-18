@@ -24,6 +24,9 @@ export interface Alimento {
   /** Si el producto contiene azúcar o es perjudicial para diabéticos */
   contieneAzucar: boolean;
   unidad: string;
+  /** Opcional: se reparte por cajas y cada caja trae N unidades */
+  esCaja?: boolean;
+  unidadesPorCaja?: number;
   createdAt: number;
 }
 
@@ -48,6 +51,9 @@ export interface ProductoUsado {
   cantidadTotal: number;
   unidad: string;
   contieneAzucar: boolean;
+  esCaja?: boolean;
+  cajasUsadas?: number;
+  unidadesPorCaja?: number;
 }
 
 export interface SesionDistribucion {
@@ -66,5 +72,8 @@ export interface SesionDistribucion {
 
 export interface ProductoEntrada {
   alimento: Alimento;
+  /** Unidades totales a repartir (cajas × unidades/caja si aplica) */
   cantidadTotal: number;
+  /** Lo que ingresó el usuario (cajas o unidades) */
+  cantidadIngresada: number;
 }

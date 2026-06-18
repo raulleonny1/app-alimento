@@ -1,4 +1,5 @@
 import type { Alimento, Beneficiario, Bolsa, ProductoEntrada } from '../types';
+import { esProductoCaja } from './alimento';
 
 export interface ResultadoDistribucion {
   bolsas: Bolsa[];
@@ -88,7 +89,7 @@ function distribuirProducto(
       codigoBarras: alimento.codigoBarras,
       nombre: alimento.nombre,
       cantidad,
-      unidad: alimento.unidad,
+      unidad: esProductoCaja(alimento) ? 'unidad' : alimento.unidad,
     });
   }
 
@@ -114,7 +115,11 @@ export function calcularDistribucion(
   for (const { alimento, cantidadTotal } of productos) {
     const resto = distribuirProducto(alimento, cantidadTotal, beneficiarios, bolsasMap);
     if (resto > 0) {
-      sobrantes.push({ nombre: alimento.nombre, cantidad: resto, unidad: alimento.unidad });
+      sobrantes.push({
+        nombre: alimento.nombre,
+        cantidad: resto,
+        unidad: esProductoCaja(alimento) ? 'unidad' : alimento.unidad,
+      });
     }
   }
 

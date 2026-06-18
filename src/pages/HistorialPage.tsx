@@ -57,7 +57,10 @@ export function HistorialPage() {
                       <ul>
                         {d.productosUsados.map((p, i) => (
                           <li key={i}>
-                            {p.nombre}: {p.cantidadTotal} {p.unidad}
+                            {p.nombre}:{' '}
+                            {p.esCaja && p.cajasUsadas
+                              ? `${p.cajasUsadas} caja(s) × ${p.unidadesPorCaja} = ${p.cantidadTotal} unidades`
+                              : `${p.cantidadTotal} ${p.unidad}`}
                             {p.contieneAzucar ? ' (azúcar)' : ''}
                           </li>
                         ))}

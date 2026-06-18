@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAlimentos } from '../hooks/useAlimentos';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
+import { esProductoCaja } from '../lib/alimento';
 import type { Alimento } from '../types';
 
 export function AlimentosPage() {
@@ -102,6 +103,9 @@ export function AlimentosPage() {
               </div>
               <p className="barcode-display">📊 {a.codigoBarras}</p>
               <p className="meta">Unidad: {a.unidad}</p>
+              {esProductoCaja(a) && (
+                <p className="meta">Caja con {a.unidadesPorCaja} unidades</p>
+              )}
               <div className="list-actions">
                 <button className="btn-text" onClick={() => abrirRegistro(undefined, a)}>
                   Editar

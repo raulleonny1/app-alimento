@@ -5,6 +5,12 @@ import { useDistribuciones } from '../hooks/useDistribuciones';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
 import { calcularDistribucion } from '../lib/distribucion';
+import {
+  etiquetaCantidadIngreso,
+  esProductoCaja,
+  resumenCantidad,
+  unidadesTotales,
+} from '../lib/alimento';
 import { textoPersonasHogar } from '../lib/titulares';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
@@ -88,7 +94,11 @@ export function DistribucionPage() {
       .map((p) => {
         const alimento = alimentos.find((a) => a.id === p.alimentoId);
         if (!alimento) return null;
-        return { alimento, cantidadTotal: p.cantidad };
+        return {
+          alimento,
+          cantidadTotal: unidadesTotales(alimento, p.cantidad),
+          cantidadIngresada: p.cantidad,
+        };
       })
       .filter((x): x is ProductoEntrada => x !== null);
 
@@ -103,14 +113,25 @@ export function DistribucionPage() {
         totalTitulares: beneficiarios.length,
         totalBeneficiarios: beneficiarios.length,
         totalMiembrosFamilia: 0,
-        productosUsados: entradas.map((e) => ({
-          alimentoId: e.alimento.id,
-          codigoBarras: e.alimento.codigoBarras,
-          nombre: e.alimento.nombre,
-          cantidadTotal: e.cantidadTotal,
-          unidad: e.alimento.unidad,
-          contieneAzucar: e.alimento.contieneAzucar,
-        })),
+        productosUsados: entradas.map((e) => {
+          const base = {
+            alimentoId: e.alimento.id,
+            codigoBarras: e.alimento.codigoBarras,
+            nombre: e.alimento.nombre,
+            cantidadTotal: e.cantidadTotal,
+            unidad: esProductoCaja(e.alimento) ? 'unidad' : e.alimento.unidad,
+            contieneAzucar: e.alimento.contieneAzucar,
+          };
+          if (esProductoCaja(e.alimento)) {
+            return {
+              ...base,
+              esCaja: true,
+              cajasUsadas: e.cantidadIngresada,
+              unidadesPorCaja: e.alimento.unidadesPorCaja,
+            };
+          }
+          return base;
+        }),
         bolsas: res.bolsas,
         advertencias: res.advertencias,
         sobrantes: res.sobrantes,
@@ -234,7 +255,7 @@ export function DistribucionPage() {
                         }
                         className="qty-input"
                       />
-                      <span className="unidad">{alimento.unidad}</span>
+                      <span className="unidad">{etiquetaCantidadIngreso(alimento)}</span>
                       <button
                         type="button"
                         className="btn-qty"
@@ -243,6 +264,7 @@ export function DistribucionPage() {
                         +
                       </button>
                     </div>
+                    <p className="meta">{resumenCantidad(alimento, p.cantidad)}</p>
                   </div>
                 );
               })}

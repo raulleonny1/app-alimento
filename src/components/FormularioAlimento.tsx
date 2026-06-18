@@ -25,6 +25,10 @@ export function FormularioAlimento({
     alimentoExistente?.contieneAzucar ?? false
   );
   const [unidad, setUnidad] = useState(alimentoExistente?.unidad ?? 'unidad');
+  const [esCaja, setEsCaja] = useState(alimentoExistente?.esCaja ?? false);
+  const [unidadesPorCaja, setUnidadesPorCaja] = useState(
+    alimentoExistente?.unidadesPorCaja?.toString() ?? ''
+  );
   const [guardando, setGuardando] = useState(false);
   const [mostrarScanner, setMostrarScanner] = useState(false);
 
@@ -36,13 +40,24 @@ export function FormularioAlimento({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!codigoBarras.trim() || !nombre.trim()) return;
-    setGuardando(true);
-    await onGuardar({
+
+    const data: Omit<Alimento, 'id' | 'createdAt'> = {
       codigoBarras: codigoBarras.trim(),
       nombre: nombre.trim(),
       contieneAzucar,
       unidad,
-    });
+    };
+
+    if (esCaja && unidadesPorCaja.trim()) {
+      const n = parseInt(unidadesPorCaja, 10);
+      if (n > 0) {
+        data.esCaja = true;
+        data.unidadesPorCaja = n;
+      }
+    }
+
+    setGuardando(true);
+    await onGuardar(data);
     setGuardando(false);
   };
 
@@ -99,6 +114,31 @@ export function FormularioAlimento({
             <option value="lata">Lata</option>
           </select>
         </label>
+
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={esCaja}
+            onChange={(e) => {
+              setEsCaja(e.target.checked);
+              if (!e.target.checked) setUnidadesPorCaja('');
+            }}
+          />
+          <span>Viene en caja (opcional)</span>
+        </label>
+
+        {esCaja && (
+          <label className="field">
+            <span>Unidades por caja</span>
+            <input
+              type="number"
+              min={1}
+              value={unidadesPorCaja}
+              onChange={(e) => setUnidadesPorCaja(e.target.value)}
+              placeholder="Ej: 12 latas por caja"
+            />
+          </label>
+        )}
 
         <label className="checkbox-field highlight">
           <input

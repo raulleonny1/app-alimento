@@ -10,9 +10,11 @@ import {
   orderBy,
   where,
   getDocs,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Alimento } from '../types';
+import { normalizarAlimento } from '../lib/alimento';
 
 const COL = 'alimentos';
 
@@ -27,7 +29,16 @@ export function useAlimentos() {
       q,
       (snap) => {
         setError(null);
-        setAlimentos(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Alimento));
+        setAlimentos(
+          snap.docs.map((d) => {
+            const raw = d.data();
+            return {
+              id: d.id,
+              ...raw,
+              ...normalizarAlimento(raw as Record<string, unknown>),
+            } as Alimento;
+          })
+        );
         setLoading(false);
       },
       (err) => {
@@ -44,15 +55,30 @@ export function useAlimentos() {
     const snap = await getDocs(q);
     if (snap.empty) return null;
     const d = snap.docs[0];
-    return { id: d.id, ...d.data() } as Alimento;
+    const raw = d.data();
+    return {
+      id: d.id,
+      ...raw,
+      ...normalizarAlimento(raw as Record<string, unknown>),
+    } as Alimento;
   };
 
   const agregar = async (data: Omit<Alimento, 'id' | 'createdAt'>) => {
-    await addDoc(collection(db, COL), { ...data, createdAt: Date.now(), updatedAt: Date.now() });
+    const payload: Record<string, unknown> = { ...data, createdAt: Date.now(), updatedAt: Date.now() };
+    if (!data.esCaja) {
+      delete payload.esCaja;
+      delete payload.unidadesPorCaja;
+    }
+    await addDoc(collection(db, COL), payload);
   };
 
   const actualizar = async (id: string, data: Partial<Omit<Alimento, 'id'>>) => {
-    await updateDoc(doc(db, COL, id), { ...data, updatedAt: Date.now() });
+    const payload: Record<string, unknown> = { ...data, updatedAt: Date.now() };
+    if (!data.esCaja) {
+      payload.esCaja = false;
+      payload.unidadesPorCaja = deleteField();
+    }
+    await updateDoc(doc(db, COL, id), payload);
   };
 
   const eliminar = async (id: string) => {
