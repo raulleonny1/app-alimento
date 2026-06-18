@@ -472,6 +472,10 @@ body {
   margin-bottom: 16px;
 }
 
+.stats-row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .stat-card {
   background: white;
   border-radius: var(--radius);

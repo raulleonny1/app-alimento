@@ -5,7 +5,7 @@ import { useDistribuciones } from '../hooks/useDistribuciones';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
 import { calcularDistribucion } from '../lib/distribucion';
-import { totalMiembrosFamilia, TOTAL_MIEMBROS_HOJA, TOTAL_TITULARES_HOJA } from '../lib/titulares';
+import { textoPersonasHogar } from '../lib/titulares';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -31,7 +31,6 @@ export function DistribucionPage() {
   const [detalleTitulares, setDetalleTitulares] = useState(false);
 
   const loading = loadingAlimentos || loadingBenef;
-  const totalMiembros = totalMiembrosFamilia(beneficiarios);
 
   const agregarProducto = (alimentoId: string) => {
     const existe = productos.find((p) => p.alimentoId === alimentoId);
@@ -103,7 +102,7 @@ export function DistribucionPage() {
         fecha: Date.now(),
         totalTitulares: beneficiarios.length,
         totalBeneficiarios: beneficiarios.length,
-        totalMiembrosFamilia: totalMiembros,
+        totalMiembrosFamilia: 0,
         productosUsados: entradas.map((e) => ({
           alimentoId: e.alimento.id,
           codigoBarras: e.alimento.codigoBarras,
@@ -143,7 +142,7 @@ export function DistribucionPage() {
         <p className="alerta">{errorBenef || errorAli || errorDist}</p>
       )}
 
-      <div className="stats-row">
+      <div className="stats-row stats-row-2">
         <button
           type="button"
           className={`stat-card stat-card-btn${detalleTitulares ? ' active' : ''}`}
@@ -151,13 +150,8 @@ export function DistribucionPage() {
         >
           <span className="stat-num">{beneficiarios.length}</span>
           <span className="stat-label">Titulares</span>
-          <span className="stat-hint">Toca para ver familias</span>
+          <span className="stat-hint">Familias de hogar · toca para ver</span>
         </button>
-        <div className="stat-card">
-          <span className="stat-num">{totalMiembros}</span>
-          <span className="stat-label">Miembros UF</span>
-          <span className="stat-hint">Suma columna hoja</span>
-        </div>
         <div className="stat-card">
           <span className="stat-num">
             {beneficiarios.filter((b) => b.tieneRestriccionAzucar).length}
@@ -169,9 +163,7 @@ export function DistribucionPage() {
       {detalleTitulares && (
         <div className="card detalle-titulares">
           <p className="detalle-titulares-total">
-            <strong>{beneficiarios.length}</strong> titulares ·{' '}
-            <strong>{totalMiembros}</strong> miembros UF (hoja: {TOTAL_TITULARES_HOJA} /{' '}
-            {TOTAL_MIEMBROS_HOJA})
+            <strong>{beneficiarios.length}</strong> familias de hogar (1 bolsa por titular)
           </p>
           <ul className="titulares-lista">
             {beneficiarios.map((b) => (
@@ -179,7 +171,7 @@ export function DistribucionPage() {
                 <span className="titular-nombre">
                   <span className="titular-exp">{b.expediente}</span> {b.nombre}
                 </span>
-                <span className="titular-miembros">{b.numMiembrosFamilia} miembros UF</span>
+                <span className="titular-miembros">{textoPersonasHogar(b.numMiembrosFamilia)}</span>
               </li>
             ))}
           </ul>

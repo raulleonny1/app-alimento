@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useBeneficiarios } from '../hooks/useBeneficiarios';
 import type { Beneficiario, BeneficiarioInput } from '../types';
 import { etiquetasSalud } from '../lib/beneficiario';
+import { textoPersonasHogar } from '../lib/titulares';
 
 const vacio = (): BeneficiarioInput => ({
   expediente: '',
@@ -250,7 +251,7 @@ export function BeneficiariosPage() {
                 <p className="meta">Expediente: {b.expediente || '—'}</p>
                 <p className="meta">DNI/NIE: {b.dni || '—'}</p>
                 <p className="meta">Teléfono: {b.telefono || '—'}</p>
-                <p className="meta">Miembros UF: {b.numMiembrosFamilia}</p>
+                <p className="meta">{textoPersonasHogar(b.numMiembrosFamilia)}</p>
                 {salud.length > 0 && (
                   <div className="salud-tags">
                     {salud.map((s) => (

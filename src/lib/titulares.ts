@@ -1,10 +1,8 @@
 import type { Beneficiario, BeneficiarioInput } from '../types';
 
-/** Total según hoja de firmas en public/beneficiados.jpeg */
-export const TOTAL_MIEMBROS_HOJA = 36;
 export const TOTAL_TITULARES_HOJA = 13;
 
-/** Un titular por expediente (hoja de firmas = 13 familias de hogar) */
+/** Un titular por expediente (hoja de firmas) */
 export function deduplicarTitulares(lista: Beneficiario[]): Beneficiario[] {
   const porExpediente = new Map<string, Beneficiario>();
 
@@ -21,14 +19,18 @@ export function deduplicarTitulares(lista: Beneficiario[]): Beneficiario[] {
   );
 }
 
-export function totalMiembrosFamilia(titulares: Beneficiario[]): number {
-  return titulares.reduce((s, b) => s + miembrosUF(b.numMiembrosFamilia), 0);
-}
-
-/** N° miembros unidad familiar tal como en la hoja (0 = solo titular) */
+/** Valor de la columna "N° miembros UF" de la hoja (por familia, no sumar todas) */
 export function miembrosUF(valor: number): number {
   if (!Number.isFinite(valor) || valor < 0) return 0;
   return Math.floor(valor);
+}
+
+/** Texto para mostrar personas en ese hogar (0 en hoja = solo el titular) */
+export function textoPersonasHogar(numMiembros: number): string {
+  const n = miembrosUF(numMiembros);
+  if (n === 0) return '1 persona (solo titular)';
+  if (n === 1) return '1 persona en el hogar';
+  return `${n} personas en el hogar`;
 }
 
 export function datosDesactualizados(
