@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCNkIw6Qmw-gPpsFUF4GG7d9NAdU5huQHA',
-  authDomain: 'app-alimentos-dd98e.firebaseapp.com',
-  projectId: 'app-alimentos-dd98e',
-  storageBucket: 'app-alimentos-dd98e.firebasestorage.app',
-  messagingSenderId: '735861820546',
-  appId: '1:735861820546:web:ee92bdd33983f911e4389b',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const app = initializeApp(firebaseConfig);
