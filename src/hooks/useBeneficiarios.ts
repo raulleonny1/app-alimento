@@ -14,7 +14,7 @@ import {
 import { db } from '../firebase';
 import type { Beneficiario, BeneficiarioInput } from '../types';
 import { calcularRestriccionAzucar, normalizarBeneficiario } from '../lib/beneficiario';
-import { datosDesactualizados, deduplicarTitulares } from '../lib/titulares';
+import { datosDesactualizados, deduplicarTitulares, TOTAL_TITULARES_HOJA } from '../lib/titulares';
 
 const COL = 'beneficiarios';
 
@@ -45,8 +45,8 @@ async function sincronizarDesdePublic(): Promise<void> {
   const existentes = new Map(snap.docs.map((d) => [d.id, d.data() as Record<string, unknown>]));
 
   snap.docs.forEach((d) => {
-    const exp = String(d.data().expediente ?? '');
-    if (!expedientesValidos.has(exp) || d.id !== exp) {
+    const exp = String(d.data().expediente ?? '').trim();
+    if (!exp || !expedientesValidos.has(exp) || d.id !== exp) {
       batch.delete(d.ref);
     }
   });
@@ -92,18 +92,28 @@ export function useBeneficiarios() {
         if (!sincronizandoRef.current) {
           try {
             const publica = await cargarDesdePublic();
-            if (datosDesactualizados(titulares, publica)) {
+            const expedientesOficiales = new Set(publica.map((b) => b.expediente));
+            const soloOficiales = titulares.filter((b) => expedientesOficiales.has(b.expediente));
+
+            if (
+              datosDesactualizados(soloOficiales, publica, snap.docs.length) ||
+              soloOficiales.length !== publica.length
+            ) {
               sincronizandoRef.current = true;
               await sincronizarDesdePublic();
               sincronizandoRef.current = false;
               return;
             }
+
+            setBeneficiarios(soloOficiales);
+            setLoading(false);
+            return;
           } catch (e) {
             console.error(e);
           }
         }
 
-        setBeneficiarios(titulares);
+        setBeneficiarios(titulares.slice(0, TOTAL_TITULARES_HOJA));
         setLoading(false);
       },
       (err) => {
@@ -116,10 +126,10 @@ export function useBeneficiarios() {
     return unsub;
   }, []);
 
-  const agregar = async (data: BeneficiarioInput) => {
-    const id = data.expediente.trim();
-    const ahora = Date.now();
-    await setDoc(doc(db, COL, id), { ...aFirestore(data), createdAt: ahora, updatedAt: ahora });
+  const agregar = async (_data: BeneficiarioInput) => {
+    throw new Error(
+      `Solo hay ${TOTAL_TITULARES_HOJA} titulares en la hoja oficial. No se pueden agregar más.`
+    );
   };
 
   const actualizar = async (id: string, data: BeneficiarioInput) => {
@@ -134,6 +144,10 @@ export function useBeneficiarios() {
   };
 
   const eliminar = async (id: string) => {
+    const publica = await cargarDesdePublic();
+    if (publica.some((b) => b.expediente === id)) {
+      throw new Error('No se puede eliminar un titular de la hoja oficial. Solo puedes editar sus datos.');
+    }
     await deleteDoc(doc(db, COL, id));
   };
 

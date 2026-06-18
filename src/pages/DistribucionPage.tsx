@@ -12,7 +12,7 @@ import {
   resumenCantidad,
   unidadesTotales,
 } from '../lib/alimento';
-import { textoPersonasHogar } from '../lib/titulares';
+import { textoPersonasHogar, TOTAL_TITULARES_HOJA } from '../lib/titulares';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -176,7 +176,7 @@ export function DistribucionPage() {
           className={`stat-card stat-card-btn${detalleTitulares ? ' active' : ''}`}
           onClick={() => setDetalleTitulares(!detalleTitulares)}
         >
-          <span className="stat-num">{beneficiarios.length}</span>
+          <span className="stat-num">{beneficiarios.length}/{TOTAL_TITULARES_HOJA}</span>
           <span className="stat-label">Titulares</span>
           <span className="stat-hint">Familias de hogar · toca para ver</span>
         </button>
@@ -191,7 +191,7 @@ export function DistribucionPage() {
       {detalleTitulares && (
         <div className="card detalle-titulares">
           <p className="detalle-titulares-total">
-            <strong>{beneficiarios.length}</strong> familias de hogar (1 bolsa por titular)
+            <strong>{beneficiarios.length}/{TOTAL_TITULARES_HOJA}</strong> familias de hogar (1 bolsa por titular)
           </p>
           <ul className="titulares-lista">
             {beneficiarios.map((b) => (

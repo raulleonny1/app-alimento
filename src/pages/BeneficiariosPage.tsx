@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useBeneficiarios } from '../hooks/useBeneficiarios';
 import type { Beneficiario, BeneficiarioInput } from '../types';
 import { etiquetasSalud } from '../lib/beneficiario';
-import { textoPersonasHogar } from '../lib/titulares';
+import { textoPersonasHogar, TOTAL_TITULARES_HOJA } from '../lib/titulares';
 
 const vacio = (): BeneficiarioInput => ({
   expediente: '',
@@ -65,7 +65,7 @@ function FormularioBeneficiario({
 
   return (
     <form className="card form-card" onSubmit={handleSubmit}>
-      <h3>{inicial ? 'Editar beneficiado' : 'Nuevo beneficiado'}</h3>
+      <h3>Editar titular</h3>
 
       <label className="field">
         <span>N° Expediente</span>
@@ -73,8 +73,7 @@ function FormularioBeneficiario({
           type="text"
           inputMode="numeric"
           value={form.expediente}
-          onChange={(e) => setCampo('expediente', e.target.value)}
-          placeholder="Ej: 28094015"
+          readOnly
           required
         />
       </label>
@@ -112,12 +111,12 @@ function FormularioBeneficiario({
       </label>
 
       <label className="field">
-        <span>N° miembros unidad familiar</span>
+        <span>N° miembros unidad familiar (dato de la hoja)</span>
         <input
           type="number"
           min={0}
           value={form.numMiembrosFamilia}
-          onChange={(e) => setCampo('numMiembrosFamilia', parseInt(e.target.value) || 0)}
+          readOnly
           required
         />
       </label>
@@ -189,18 +188,14 @@ function FormularioBeneficiario({
 }
 
 export function BeneficiariosPage() {
-  const { beneficiarios, loading, error, agregar, actualizar, eliminar } = useBeneficiarios();
-  const [mostrarForm, setMostrarForm] = useState(false);
+  const { beneficiarios, loading, error, actualizar } = useBeneficiarios();
   const [editando, setEditando] = useState<Beneficiario | null>(null);
 
   const handleGuardar = async (data: BeneficiarioInput) => {
     if (editando) {
       await actualizar(editando.id, data);
       setEditando(null);
-    } else {
-      await agregar(data);
     }
-    setMostrarForm(false);
   };
 
   if (loading) return <p className="loading">Cargando beneficiados...</p>;
@@ -208,29 +203,26 @@ export function BeneficiariosPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h2>Titulares ({beneficiarios.length})</h2>
-        {!mostrarForm && !editando && (
-          <button className="btn primary" onClick={() => setMostrarForm(true)}>
-            + Nuevo
-          </button>
-        )}
+        <h2>Titulares ({beneficiarios.length}/{TOTAL_TITULARES_HOJA})</h2>
       </div>
 
       {error && <p className="alerta">{error}</p>}
+
+      <p className="info-banner">
+        Son <strong>{TOTAL_TITULARES_HOJA} familias titulares</strong> según la hoja de firmas (1 bolsa por
+        titular). Solo puedes editar teléfono y datos de salud.
+      </p>
 
       <details className="card hoja-referencia">
         <summary>Ver hoja de referencia</summary>
         <img src="/beneficiados.jpeg" alt="Hoja de firmas - kilos entrega" className="hoja-img" />
       </details>
 
-      {(mostrarForm || editando) && (
+      {editando && (
         <FormularioBeneficiario
-          inicial={editando ?? undefined}
+          inicial={editando}
           onGuardar={handleGuardar}
-          onCancelar={() => {
-            setMostrarForm(false);
-            setEditando(null);
-          }}
+          onCancelar={() => setEditando(null)}
         />
       )}
 
@@ -262,14 +254,6 @@ export function BeneficiariosPage() {
                 <div className="list-actions">
                   <button className="btn-text" onClick={() => setEditando(b)}>
                     Editar
-                  </button>
-                  <button
-                    className="btn-text danger"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar a ${b.nombre}?`)) eliminar(b.id);
-                    }}
-                  >
-                    Eliminar
                   </button>
                 </div>
               </div>

@@ -35,8 +35,10 @@ export function textoPersonasHogar(numMiembros: number): string {
 
 export function datosDesactualizados(
   firestore: Beneficiario[],
-  publica: BeneficiarioInput[]
+  publica: BeneficiarioInput[],
+  docsEnFirestore?: number
 ): boolean {
+  if (docsEnFirestore !== undefined && docsEnFirestore !== publica.length) return true;
   if (firestore.length !== publica.length) return true;
 
   const expedientes = firestore.map((d) => d.expediente);
@@ -47,6 +49,7 @@ export function datosDesactualizados(
   for (const b of firestore) {
     const hoja = mapa.get(b.expediente);
     if (!hoja) return true;
+    if (b.id !== b.expediente) return true;
     if (miembrosUF(b.numMiembrosFamilia) !== miembrosUF(hoja.numMiembrosFamilia)) return true;
     if (b.nombre.trim() !== hoja.nombre.trim()) return true;
     if (b.dni.trim().toUpperCase() !== hoja.dni.trim().toUpperCase()) return true;
