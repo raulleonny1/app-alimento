@@ -46,7 +46,10 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
 
   useEffect(() => {
     const scannerId = 'barcode-scanner-region';
-    const scanner = new Html5Qrcode(scannerId, { formatsToSupport: FORMATOS_BARRAS });
+    const scanner = new Html5Qrcode(scannerId, {
+      formatsToSupport: FORMATOS_BARRAS,
+      verbose: false,
+    });
     scannerRef.current = scanner;
 
     const config = {
