@@ -48,4 +48,5 @@ function createPng(size, r, g, b) {
 mkdirSync('public', { recursive: true });
 writeFileSync('public/pwa-192x192.png', createPng(192, 22, 163, 74));
 writeFileSync('public/pwa-512x512.png', createPng(512, 22, 163, 74));
+writeFileSync('public/apple-touch-icon.png', createPng(180, 22, 163, 74));
 console.log('Iconos PWA generados');

@@ -47,6 +47,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   background: var(--gray-50);
+  padding-top: env(safe-area-inset-top);
 }
 
 .app-header {
