@@ -171,7 +171,7 @@ function FormularioBeneficiario({
 
       {(form.tieneDiabetesEnFamilia || form.sensibleAzucarEnFamilia) && (
         <p className="alerta-inline">
-          Este beneficiado <strong>no recibirá</strong> productos con azúcar en la distribución.
+          En productos con azúcar recibirán <strong>cantidad mínima</strong> (ej. 1 funda de azúcar o galletas).
         </p>
       )}
 
@@ -244,7 +244,7 @@ export function BeneficiariosPage() {
                 <div className="list-item-header">
                   <strong>{b.nombre}</strong>
                   {b.tieneRestriccionAzucar && (
-                    <span className="badge warning">Sin azúcar</span>
+                    <span className="badge warning">Diabetes</span>
                   )}
                 </div>
                 <p className="meta">Expediente: {b.expediente || '—'}</p>

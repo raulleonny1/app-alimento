@@ -1,4 +1,4 @@
-import type { Beneficiario, Bolsa, ItemDistribucion, ProductoEntrada } from '../types';
+import type { Alimento, Beneficiario, Bolsa, ProductoEntrada } from '../types';
 
 export interface ResultadoDistribucion {
   bolsas: Bolsa[];
@@ -6,14 +6,93 @@ export interface ResultadoDistribucion {
   sobrantes: { nombre: string; cantidad: number; unidad: string }[];
 }
 
-function beneficiariosElegibles(
+function esAzucarPura(nombre: string): boolean {
+  const n = nombre.toLowerCase();
+  return /az[uú]car|funda|saco|bolsa/.test(n);
+}
+
+function esAzucarLigera(nombre: string): boolean {
+  const n = nombre.toLowerCase();
+  return /galleta|maría|maria|dulce|mermelada|bizcocho/.test(n);
+}
+
+/** Cuota de azúcar para familia con diabetes: mínimo 1, máximo según tipo de producto */
+function cuotaAzucarDiabetico(alimento: Alimento, equitativa: number): number {
+  if (equitativa <= 0) return 0;
+  if (esAzucarLigera(alimento.nombre)) return equitativa;
+  if (esAzucarPura(alimento.nombre)) return 1;
+  return Math.min(equitativa, 1);
+}
+
+function repartirEquitativamente(cantidadTotal: number, n: number): number[] {
+  const base = Math.floor(cantidadTotal / n);
+  const extra = cantidadTotal % n;
+  return Array.from({ length: n }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+function distribuirProducto(
+  alimento: Alimento,
+  cantidadTotal: number,
   beneficiarios: Beneficiario[],
-  contieneAzucar: boolean
-): Beneficiario[] {
-  if (contieneAzucar) {
-    return beneficiarios.filter((b) => !b.tieneRestriccionAzucar);
+  bolsasMap: Map<string, Bolsa>
+): number {
+  const n = beneficiarios.length;
+  if (n === 0 || cantidadTotal <= 0) return cantidadTotal;
+
+  const cuotas = repartirEquitativamente(cantidadTotal, n);
+  const asignado = new Map<string, number>();
+  let sobrante = 0;
+
+  beneficiarios.forEach((b, i) => {
+    let cant = cuotas[i];
+    if (alimento.contieneAzucar && b.tieneRestriccionAzucar) {
+      const reducida = cuotaAzucarDiabetico(alimento, cant);
+      sobrante += cant - reducida;
+      cant = reducida;
+    }
+    asignado.set(b.id, cant);
+  });
+
+  const sinRestriccion = beneficiarios.filter((b) => !b.tieneRestriccionAzucar);
+  let idx = 0;
+  while (sobrante > 0 && sinRestriccion.length > 0) {
+    const b = sinRestriccion[idx % sinRestriccion.length];
+    asignado.set(b.id, (asignado.get(b.id) ?? 0) + 1);
+    sobrante--;
+    idx++;
   }
-  return beneficiarios;
+
+  const diabeticos = beneficiarios.filter((b) => b.tieneRestriccionAzucar);
+  for (const b of diabeticos) {
+    if (!alimento.contieneAzucar) continue;
+    const actual = asignado.get(b.id) ?? 0;
+    if (actual > 0) continue;
+
+    const donante = sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 1)
+      ?? sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 0);
+    if (donante) {
+      asignado.set(donante.id, (asignado.get(donante.id) ?? 0) - 1);
+      asignado.set(b.id, 1);
+      sobrante = Math.max(0, sobrante - 1);
+    } else if (sobrante > 0) {
+      asignado.set(b.id, 1);
+      sobrante--;
+    }
+  }
+
+  for (const b of beneficiarios) {
+    const cantidad = asignado.get(b.id) ?? 0;
+    if (cantidad <= 0) continue;
+    bolsasMap.get(b.id)!.items.push({
+      alimentoId: alimento.id,
+      codigoBarras: alimento.codigoBarras,
+      nombre: alimento.nombre,
+      cantidad,
+      unidad: alimento.unidad,
+    });
+  }
+
+  return sobrante;
 }
 
 export function calcularDistribucion(
@@ -32,62 +111,14 @@ export function calcularDistribucion(
     });
   }
 
-  const conOtraEnfermedad = beneficiarios.filter((b) => b.otraEnfermedad);
-  if (conOtraEnfermedad.length > 0) {
-    advertencias.push(
-      `⚠️ ${conOtraEnfermedad.length} beneficiario(s) con otra enfermedad: ${conOtraEnfermedad
-        .map((b) => `${b.nombre}${b.descripcionEnfermedad ? ` (${b.descripcionEnfermedad})` : ''}`)
-        .join(', ')}. Revisar alimentos asignados.`
-    );
-  }
-
   for (const { alimento, cantidadTotal } of productos) {
-    const elegibles = beneficiariosElegibles(beneficiarios, alimento.contieneAzucar);
-
-    if (elegibles.length === 0) {
-      advertencias.push(
-        `"${alimento.nombre}" contiene azúcar y ningún beneficiario puede recibirlo. Sobrante: ${cantidadTotal} ${alimento.unidad}`
-      );
-      sobrantes.push({ nombre: alimento.nombre, cantidad: cantidadTotal, unidad: alimento.unidad });
-      continue;
-    }
-
-    const porPersona = Math.floor(cantidadTotal / elegibles.length);
-    const resto = cantidadTotal % elegibles.length;
-
-    if (porPersona === 0 && cantidadTotal > 0) {
-      advertencias.push(
-        `"${alimento.nombre}": cantidad insuficiente (${cantidadTotal}) para ${elegibles.length} beneficiarios elegibles`
-      );
-      sobrantes.push({ nombre: alimento.nombre, cantidad: cantidadTotal, unidad: alimento.unidad });
-      continue;
-    }
-
-    elegibles.forEach((b, index) => {
-      const cantidad = porPersona + (index < resto ? 1 : 0);
-      if (cantidad <= 0) return;
-
-      const bolsa = bolsasMap.get(b.id)!;
-      const item: ItemDistribucion = {
-        alimentoId: alimento.id,
-        codigoBarras: alimento.codigoBarras,
-        nombre: alimento.nombre,
-        cantidad,
-        unidad: alimento.unidad,
-      };
-      bolsa.items.push(item);
-    });
-
-    const excluidos = beneficiarios.length - elegibles.length;
-    if (excluidos > 0 && alimento.contieneAzucar) {
-      advertencias.push(
-        `"${alimento.nombre}": ${excluidos} beneficiario(s) excluido(s) por restricción de azúcar/diabetes`
-      );
+    const resto = distribuirProducto(alimento, cantidadTotal, beneficiarios, bolsasMap);
+    if (resto > 0) {
+      sobrantes.push({ nombre: alimento.nombre, cantidad: resto, unidad: alimento.unidad });
     }
   }
 
   const bolsas = Array.from(bolsasMap.values()).filter((b) => b.items.length > 0);
-
   return { bolsas, advertencias, sobrantes };
 }
 

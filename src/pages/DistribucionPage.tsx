@@ -134,7 +134,7 @@ export function DistribucionPage() {
           <span className="stat-num">
             {beneficiarios.filter((b) => b.tieneRestriccionAzucar).length}
           </span>
-          <span className="stat-label">Sin azúcar</span>
+          <span className="stat-label">Con diabetes</span>
         </div>
       </div>
 
