@@ -188,10 +188,9 @@ function FormularioBeneficiario({
 }
 
 export function BeneficiariosPage() {
-  const { beneficiarios, loading, agregar, actualizar, eliminar, importarHoja } = useBeneficiarios();
+  const { beneficiarios, loading, error, agregar, actualizar, eliminar } = useBeneficiarios();
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editando, setEditando] = useState<Beneficiario | null>(null);
-  const [importando, setImportando] = useState(false);
 
   const handleGuardar = async (data: BeneficiarioInput) => {
     if (editando) {
@@ -203,19 +202,12 @@ export function BeneficiariosPage() {
     setMostrarForm(false);
   };
 
-  const handleImportar = async () => {
-    if (!confirm('¿Cargar los 13 beneficiados de la hoja de firmas?')) return;
-    setImportando(true);
-    await importarHoja();
-    setImportando(false);
-  };
-
-  if (loading) return <p className="loading">Cargando...</p>;
+  if (loading) return <p className="loading">Cargando beneficiados...</p>;
 
   return (
     <div className="page">
       <div className="page-header">
-        <h2>Beneficiados</h2>
+        <h2>Beneficiados ({beneficiarios.length})</h2>
         {!mostrarForm && !editando && (
           <button className="btn primary" onClick={() => setMostrarForm(true)}>
             + Nuevo
@@ -223,16 +215,12 @@ export function BeneficiariosPage() {
         )}
       </div>
 
+      {error && <p className="alerta">{error}</p>}
+
       <details className="card hoja-referencia">
         <summary>Ver hoja de referencia</summary>
         <img src="/beneficiados.jpeg" alt="Hoja de firmas - kilos entrega" className="hoja-img" />
       </details>
-
-      {beneficiarios.length === 0 && !mostrarForm && !editando && (
-        <button className="btn secondary large" onClick={handleImportar} disabled={importando}>
-          {importando ? 'Importando...' : '📋 Cargar beneficiados de la hoja'}
-        </button>
-      )}
 
       {(mostrarForm || editando) && (
         <FormularioBeneficiario
