@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { InstallPWA } from './InstallPWA';
 
 export function Layout() {
   return (
@@ -6,6 +7,7 @@ export function Layout() {
       <header className="app-header">
         <h1>🛒 App Alimentos</h1>
         <p className="subtitle">Distribución de bolsas</p>
+        <InstallPWA />
       </header>
 
       <main className="app-main">

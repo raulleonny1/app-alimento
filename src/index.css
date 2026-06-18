@@ -68,6 +68,51 @@ body {
   opacity: 0.85;
 }
 
+.install-pwa {
+  margin-top: 10px;
+}
+
+.install-pwa-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid white;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.install-pwa-link {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 0;
+  opacity: 0.9;
+}
+
+.install-pwa-ayuda {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.install-pwa-ayuda ol {
+  margin: 6px 0 6px 18px;
+}
+
+.install-pwa-ayuda .meta {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+}
+
 .app-main {
   flex: 1;
   padding: 16px;
