@@ -5,7 +5,7 @@ import { useDistribuciones } from '../hooks/useDistribuciones';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
 import { calcularDistribucion } from '../lib/distribucion';
-import { totalMiembrosFamilia } from '../lib/titulares';
+import { totalMiembrosFamilia, TOTAL_MIEMBROS_HOJA, TOTAL_TITULARES_HOJA } from '../lib/titulares';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -155,7 +155,8 @@ export function DistribucionPage() {
         </button>
         <div className="stat-card">
           <span className="stat-num">{totalMiembros}</span>
-          <span className="stat-label">Miembros familia</span>
+          <span className="stat-label">Miembros UF</span>
+          <span className="stat-hint">Suma columna hoja</span>
         </div>
         <div className="stat-card">
           <span className="stat-num">
@@ -168,8 +169,9 @@ export function DistribucionPage() {
       {detalleTitulares && (
         <div className="card detalle-titulares">
           <p className="detalle-titulares-total">
-            <strong>{beneficiarios.length}</strong> titulares (familias de hogar) ·{' '}
-            <strong>{totalMiembros}</strong> miembros en total
+            <strong>{beneficiarios.length}</strong> titulares ·{' '}
+            <strong>{totalMiembros}</strong> miembros UF (hoja: {TOTAL_TITULARES_HOJA} /{' '}
+            {TOTAL_MIEMBROS_HOJA})
           </p>
           <ul className="titulares-lista">
             {beneficiarios.map((b) => (
@@ -177,9 +179,7 @@ export function DistribucionPage() {
                 <span className="titular-nombre">
                   <span className="titular-exp">{b.expediente}</span> {b.nombre}
                 </span>
-                <span className="titular-miembros">
-                  {b.numMiembrosFamilia} en familia
-                </span>
+                <span className="titular-miembros">{b.numMiembrosFamilia} miembros UF</span>
               </li>
             ))}
           </ul>

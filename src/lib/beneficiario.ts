@@ -18,7 +18,10 @@ export function normalizarBeneficiario(id: string, raw: Record<string, unknown>)
     nombre: String(raw.nombre ?? ''),
     dni: String(raw.dni ?? ''),
     telefono: String(raw.telefono ?? ''),
-    numMiembrosFamilia: Number(raw.numMiembrosFamilia ?? familiares.length ?? 0),
+    numMiembrosFamilia:
+      raw.numMiembrosFamilia !== undefined && raw.numMiembrosFamilia !== null
+        ? Number(raw.numMiembrosFamilia)
+        : 0,
     tieneDiabetesEnFamilia,
     sensibleAzucarEnFamilia,
     otraEnfermedad: Boolean(raw.otraEnfermedad),

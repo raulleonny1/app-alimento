@@ -8,7 +8,7 @@ const vacio = (): BeneficiarioInput => ({
   nombre: '',
   dni: '',
   telefono: '',
-  numMiembrosFamilia: 1,
+  numMiembrosFamilia: 0,
   tieneDiabetesEnFamilia: false,
   sensibleAzucarEnFamilia: false,
   otraEnfermedad: false,
@@ -250,7 +250,7 @@ export function BeneficiariosPage() {
                 <p className="meta">Expediente: {b.expediente || '—'}</p>
                 <p className="meta">DNI/NIE: {b.dni || '—'}</p>
                 <p className="meta">Teléfono: {b.telefono || '—'}</p>
-                <p className="meta">Miembros familia: {b.numMiembrosFamilia}</p>
+                <p className="meta">Miembros UF: {b.numMiembrosFamilia}</p>
                 {salud.length > 0 && (
                   <div className="salud-tags">
                     {salud.map((s) => (

@@ -14,13 +14,14 @@ import {
 import { db } from '../firebase';
 import type { Beneficiario, BeneficiarioInput } from '../types';
 import { calcularRestriccionAzucar, normalizarBeneficiario } from '../lib/beneficiario';
-import { deduplicarTitulares } from '../lib/titulares';
+import { datosDesactualizados, deduplicarTitulares } from '../lib/titulares';
 
 const COL = 'beneficiarios';
 
 function aFirestore(data: BeneficiarioInput) {
   return {
     ...data,
+    numMiembrosFamilia: Math.max(0, Math.floor(Number(data.numMiembrosFamilia) || 0)),
     tieneRestriccionAzucar: calcularRestriccionAzucar(data),
   };
 }
@@ -28,15 +29,20 @@ function aFirestore(data: BeneficiarioInput) {
 async function cargarDesdePublic(): Promise<BeneficiarioInput[]> {
   const res = await fetch('/beneficiarios.json');
   if (!res.ok) throw new Error('No se pudo leer public/beneficiarios.json');
-  return res.json();
+  const lista = await res.json();
+  return lista.map((b: BeneficiarioInput) => ({
+    ...b,
+    numMiembrosFamilia: Math.max(0, Math.floor(Number(b.numMiembrosFamilia) || 0)),
+  }));
 }
 
-/** Sincroniza Firestore con public/beneficiarios.json — 1 doc por expediente, sin duplicados */
+/** Sincroniza Firestore con public/beneficiarios.json — conserva datos de salud editados */
 async function sincronizarDesdePublic(): Promise<void> {
   const lista = await cargarDesdePublic();
   const snap = await getDocs(collection(db, COL));
   const batch = writeBatch(db);
   const expedientesValidos = new Set(lista.map((b) => b.expediente));
+  const existentes = new Map(snap.docs.map((d) => [d.id, d.data() as Record<string, unknown>]));
 
   snap.docs.forEach((d) => {
     const exp = String(d.data().expediente ?? '');
@@ -47,17 +53,22 @@ async function sincronizarDesdePublic(): Promise<void> {
 
   const ahora = Date.now();
   lista.forEach((b, i) => {
-    batch.set(doc(db, COL, b.expediente), { ...aFirestore(b), createdAt: ahora + i });
+    const prev = existentes.get(b.expediente);
+    const fusionado: BeneficiarioInput = {
+      ...b,
+      tieneDiabetesEnFamilia: Boolean(prev?.tieneDiabetesEnFamilia ?? b.tieneDiabetesEnFamilia),
+      sensibleAzucarEnFamilia: Boolean(prev?.sensibleAzucarEnFamilia ?? b.sensibleAzucarEnFamilia),
+      otraEnfermedad: Boolean(prev?.otraEnfermedad ?? b.otraEnfermedad),
+      descripcionEnfermedad: String(prev?.descripcionEnfermedad ?? b.descripcionEnfermedad ?? ''),
+    };
+    batch.set(doc(db, COL, b.expediente), {
+      ...aFirestore(fusionado),
+      createdAt: Number(prev?.createdAt ?? ahora + i),
+      updatedAt: ahora,
+    });
   });
 
   await batch.commit();
-}
-
-function necesitaSincronizar(docs: Beneficiario[], listaPublic: BeneficiarioInput[]): boolean {
-  if (docs.length === 0) return true;
-  if (docs.length !== listaPublic.length) return true;
-  const expedientes = docs.map((d) => d.expediente);
-  return new Set(expedientes).size !== expedientes.length;
 }
 
 export function useBeneficiarios() {
@@ -81,7 +92,7 @@ export function useBeneficiarios() {
         if (!sincronizandoRef.current) {
           try {
             const publica = await cargarDesdePublic();
-            if (necesitaSincronizar(titulares, publica)) {
+            if (datosDesactualizados(titulares, publica)) {
               sincronizandoRef.current = true;
               await sincronizarDesdePublic();
               sincronizandoRef.current = false;
