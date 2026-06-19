@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { useDistribuciones } from '../hooks/useDistribuciones';
 
-function formatFecha(ts: number): string {
-  return new Date(ts).toLocaleString('es-MX', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { formatFechaReparto } from '../lib/fecha';
 
 export function HistorialPage() {
   const { distribuciones, loading, error } = useDistribuciones();
@@ -40,7 +32,7 @@ export function HistorialPage() {
                 onClick={() => setExpandido(expandido === d.id ? null : d.id)}
               >
                 <div>
-                  <strong>{formatFecha(d.fecha)}</strong>
+                  <strong>{formatFechaReparto(d.fecha)}</strong>
                   <p className="meta">
                     {d.bolsas.length} bolsas · {d.totalTitulares ?? d.totalBeneficiarios} titulares
                     {d.totalMiembrosFamilia ? ` · ${d.totalMiembrosFamilia} miembros` : ''}

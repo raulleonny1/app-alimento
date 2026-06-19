@@ -13,7 +13,8 @@ import {
   resumenCantidad,
   unidadesTotales,
 } from '../lib/alimento';
-import { textoPersonasHogar, TOTAL_TITULARES_HOJA } from '../lib/titulares';
+import { textoPersonasHogar, TOTAL_TITULARES_HOJA, totalCargaFamiliar } from '../lib/titulares';
+import { fechaLocalAHora, formatFechaReparto, hoyLocalISO } from '../lib/fecha';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -38,6 +39,10 @@ export function DistribucionPage() {
   const [guardadoFirebase, setGuardadoFirebase] = useState(false);
   const [registrarCodigo, setRegistrarCodigo] = useState<string | null>(null);
   const [detalleTitulares, setDetalleTitulares] = useState(false);
+  const [fechaReparto, setFechaReparto] = useState(hoyLocalISO);
+  const [fechaGuardada, setFechaGuardada] = useState<number | null>(null);
+
+  const cargaTotal = totalCargaFamiliar(beneficiarios);
 
   const loading = loadingAlimentos || loadingBenef;
 
@@ -123,16 +128,18 @@ export function DistribucionPage() {
       .filter((x): x is ProductoEntrada => x !== null);
 
     const res = calcularDistribucion(entradas, beneficiarios);
+    const fechaMs = fechaLocalAHora(fechaReparto);
     setResultado(res);
+    setFechaGuardada(fechaMs);
     setGuardadoFirebase(false);
 
     setGuardando(true);
     try {
       await guardar({
-        fecha: Date.now(),
+        fecha: fechaMs,
         totalTitulares: beneficiarios.length,
         totalBeneficiarios: beneficiarios.length,
-        totalMiembrosFamilia: 0,
+        totalMiembrosFamilia: cargaTotal,
         productosUsados: entradas.map((e) => {
           const base = {
             alimentoId: e.alimento.id,
@@ -170,6 +177,8 @@ export function DistribucionPage() {
     setProductos([]);
     setResultado(null);
     setGuardadoFirebase(false);
+    setFechaGuardada(null);
+    setFechaReparto(hoyLocalISO());
   };
 
   if (loading) return <p className="loading">Cargando...</p>;
@@ -184,6 +193,12 @@ export function DistribucionPage() {
         <p className="alerta">{errorBenef || errorAli || errorDist}</p>
       )}
 
+      <p className="info-banner">
+        El reparto es <strong>proporcional a la carga familiar</strong> (N° miembros UF de cada
+        hogar). Familias más numerosas reciben más; las restricciones de azúcar y productos
+        exclusivos para diabéticos se mantienen.
+      </p>
+
       <div className="stats-row stats-row-2">
         <button
           type="button"
@@ -195,10 +210,9 @@ export function DistribucionPage() {
           <span className="stat-hint">Familias de hogar · toca para ver</span>
         </button>
         <div className="stat-card">
-          <span className="stat-num">
-            {beneficiarios.filter((b) => b.tieneRestriccionAzucar).length}
-          </span>
-          <span className="stat-label">Con diabetes</span>
+          <span className="stat-num">{cargaTotal}</span>
+          <span className="stat-label">Personas UF</span>
+          <span className="stat-hint">Carga total para reparto</span>
         </div>
       </div>
 
@@ -222,6 +236,21 @@ export function DistribucionPage() {
 
       {!resultado && (
         <>
+          <div className="card form-card fecha-reparto-card">
+            <label className="field highlight-field">
+              <span>Fecha de reparto</span>
+              <input
+                type="date"
+                value={fechaReparto}
+                onChange={(e) => setFechaReparto(e.target.value)}
+                required
+              />
+            </label>
+            <p className="meta">
+              Reparto programado para: <strong>{formatFechaReparto(fechaLocalAHora(fechaReparto))}</strong>
+            </p>
+          </div>
+
           <div className="action-buttons">
             <button className="btn primary large" onClick={() => setMostrarScanner(true)}>
               📷 Escanear código de barras
@@ -334,6 +363,11 @@ export function DistribucionPage() {
         <div className="resultado">
           <div className="resultado-header">
             <h3>✅ Bolsas listas ({resultado.bolsas.length})</h3>
+            {fechaGuardada != null && (
+              <p className="meta fecha-reparto-resultado">
+                📅 Reparto: {formatFechaReparto(fechaGuardada)}
+              </p>
+            )}
             <div className="resultado-header-actions">
               {guardadoFirebase && <span className="badge ok">Guardado en Firebase</span>}
               <button className="btn-text" onClick={reiniciar}>

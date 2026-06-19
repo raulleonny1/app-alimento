@@ -33,6 +33,16 @@ export function textoPersonasHogar(numMiembros: number): string {
   return `${n} personas en el hogar`;
 }
 
+/** Personas en el hogar para reparto (0 en hoja = solo titular = 1) */
+export function pesoCargaFamiliar(b: Pick<Beneficiario, 'numMiembrosFamilia'>): number {
+  const n = miembrosUF(b.numMiembrosFamilia);
+  return n <= 0 ? 1 : n;
+}
+
+export function totalCargaFamiliar(lista: Beneficiario[]): number {
+  return lista.reduce((s, b) => s + pesoCargaFamiliar(b), 0);
+}
+
 export function datosDesactualizados(
   firestore: Beneficiario[],
   publica: BeneficiarioInput[],

@@ -1,5 +1,6 @@
 import type { Alimento, Beneficiario, Bolsa, ProductoEntrada } from '../types';
 import { esProductoCaja } from './alimento';
+import { pesoCargaFamiliar } from './titulares';
 
 export interface ResultadoDistribucion {
   bolsas: Bolsa[];
@@ -25,10 +26,37 @@ function cuotaAzucarDiabetico(alimento: Alimento, equitativa: number): number {
   return Math.min(equitativa, 1);
 }
 
-function repartirEquitativamente(cantidadTotal: number, n: number): number[] {
-  const base = Math.floor(cantidadTotal / n);
-  const extra = cantidadTotal % n;
-  return Array.from({ length: n }, (_, i) => base + (i < extra ? 1 : 0));
+/** Reparte según carga familiar (N° miembros UF de cada hogar) */
+function repartirPorCargaFamiliar(
+  cantidadTotal: number,
+  lista: Beneficiario[]
+): Map<string, number> {
+  const asignado = new Map<string, number>();
+  if (lista.length === 0 || cantidadTotal <= 0) return asignado;
+
+  const pesos = lista.map((b) => ({ id: b.id, peso: pesoCargaFamiliar(b) }));
+  const totalPeso = pesos.reduce((s, p) => s + p.peso, 0);
+  if (totalPeso <= 0) return asignado;
+
+  const fracciones: { id: string; frac: number }[] = [];
+  let sumaAsignada = 0;
+
+  for (const { id, peso } of pesos) {
+    const exacto = (cantidadTotal * peso) / totalPeso;
+    const base = Math.floor(exacto);
+    asignado.set(id, base);
+    sumaAsignada += base;
+    fracciones.push({ id, frac: exacto - base });
+  }
+
+  let resto = cantidadTotal - sumaAsignada;
+  fracciones.sort((a, b) => b.frac - a.frac);
+  for (let i = 0; i < resto; i++) {
+    const id = fracciones[i % fracciones.length].id;
+    asignado.set(id, (asignado.get(id) ?? 0) + 1);
+  }
+
+  return asignado;
 }
 
 function distribuirProducto(
@@ -37,8 +65,9 @@ function distribuirProducto(
   beneficiarios: Beneficiario[],
   bolsasMap: Map<string, Bolsa>
 ): { sobrante: number; advertencia?: string } {
-  const n = beneficiarios.length;
-  if (n === 0 || cantidadTotal <= 0) return { sobrante: cantidadTotal };
+  if (beneficiarios.length === 0 || cantidadTotal <= 0) {
+    return { sobrante: cantidadTotal };
+  }
 
   if (alimento.exclusivoDiabeticos) {
     const destinatarios = beneficiarios.filter((b) => b.tieneRestriccionAzucar);
@@ -49,12 +78,12 @@ function distribuirProducto(
       };
     }
 
-    const cuotas = repartirEquitativamente(cantidadTotal, destinatarios.length);
+    const cuotas = repartirPorCargaFamiliar(cantidadTotal, destinatarios);
     let asignado = 0;
 
-    destinatarios.forEach((b, i) => {
-      const cantidad = cuotas[i];
-      if (cantidad <= 0) return;
+    for (const b of destinatarios) {
+      const cantidad = cuotas.get(b.id) ?? 0;
+      if (cantidad <= 0) continue;
       asignado += cantidad;
       bolsasMap.get(b.id)!.items.push({
         alimentoId: alimento.id,
@@ -63,24 +92,24 @@ function distribuirProducto(
         cantidad,
         unidad: esProductoCaja(alimento) ? 'unidad' : alimento.unidad,
       });
-    });
+    }
 
     return { sobrante: cantidadTotal - asignado };
   }
 
-  const cuotas = repartirEquitativamente(cantidadTotal, n);
+  const cuotas = repartirPorCargaFamiliar(cantidadTotal, beneficiarios);
   const asignado = new Map<string, number>();
   let sobrante = 0;
 
-  beneficiarios.forEach((b, i) => {
-    let cant = cuotas[i];
+  for (const b of beneficiarios) {
+    let cant = cuotas.get(b.id) ?? 0;
     if (alimento.contieneAzucar && b.tieneRestriccionAzucar) {
       const reducida = cuotaAzucarDiabetico(alimento, cant);
       sobrante += cant - reducida;
       cant = reducida;
     }
     asignado.set(b.id, cant);
-  });
+  }
 
   const sinRestriccion = beneficiarios.filter((b) => !b.tieneRestriccionAzucar);
   let idx = 0;
@@ -97,8 +126,9 @@ function distribuirProducto(
     const actual = asignado.get(b.id) ?? 0;
     if (actual > 0) continue;
 
-    const donante = sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 1)
-      ?? sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 0);
+    const donante =
+      sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 1) ??
+      sinRestriccion.find((s) => (asignado.get(s.id) ?? 0) > 0);
     if (donante) {
       asignado.set(donante.id, (asignado.get(donante.id) ?? 0) - 1);
       asignado.set(b.id, 1);
