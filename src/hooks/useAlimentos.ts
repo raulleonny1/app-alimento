@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Alimento } from '../types';
+import type { ConsumoStock } from '../lib/inventario';
 import { normalizarAlimento } from '../lib/alimento';
 
 const COL = 'alimentos';
@@ -114,12 +115,36 @@ export function useAlimentos() {
     if (!data.exclusivoDiabeticos) {
       payload.exclusivoDiabeticos = false;
     }
+    if (data.stock == null || data.stock < 0) {
+      payload.stock = deleteField();
+    }
     await updateDoc(doc(db, COL, id), payload);
+  };
+
+  const descontarStock = async (consumos: ConsumoStock[]) => {
+    for (const { alimentoId, unidades } of consumos) {
+      const a = alimentos.find((x) => x.id === alimentoId);
+      if (!a || a.stock == null || unidades <= 0) continue;
+      await updateDoc(doc(db, COL, alimentoId), {
+        stock: Math.max(0, a.stock - unidades),
+        updatedAt: Date.now(),
+      });
+    }
   };
 
   const eliminar = async (id: string) => {
     await deleteDoc(doc(db, COL, id));
   };
 
-  return { alimentos, loading, error, buscarPorCodigo, verificarCodigosUnicos, agregar, actualizar, eliminar };
+  return {
+    alimentos,
+    loading,
+    error,
+    buscarPorCodigo,
+    verificarCodigosUnicos,
+    agregar,
+    actualizar,
+    descontarStock,
+    eliminar,
+  };
 }

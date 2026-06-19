@@ -15,6 +15,7 @@ import {
 } from '../lib/alimento';
 import { textoPersonasHogar, TOTAL_TITULARES_HOJA, totalCargaFamiliar } from '../lib/titulares';
 import { fechaLocalAHora, formatFechaReparto, hoyLocalISO } from '../lib/fecha';
+import { validarStockSuficiente } from '../lib/inventario';
 import type { Alimento, Bolsa, ProductoEntrada } from '../types';
 
 interface ProductoCantidad {
@@ -23,7 +24,7 @@ interface ProductoCantidad {
 }
 
 export function DistribucionPage() {
-  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, verificarCodigosUnicos, agregar, error: errorAli } =
+  const { alimentos, loading: loadingAlimentos, buscarPorCodigo, verificarCodigosUnicos, agregar, descontarStock, error: errorAli } =
     useAlimentos();
   const { beneficiarios, loading: loadingBenef, error: errorBenef } = useBeneficiarios();
   const { guardar, error: errorDist } = useDistribuciones();
@@ -127,6 +128,15 @@ export function DistribucionPage() {
       })
       .filter((x): x is ProductoEntrada => x !== null);
 
+    const errorStock = validarStockSuficiente(
+      alimentos,
+      entradas.map((e) => ({ alimentoId: e.alimento.id, unidades: e.cantidadTotal }))
+    );
+    if (errorStock) {
+      alert(errorStock);
+      return;
+    }
+
     const res = calcularDistribucion(entradas, beneficiarios);
     const fechaMs = fechaLocalAHora(fechaReparto);
     setResultado(res);
@@ -160,11 +170,27 @@ export function DistribucionPage() {
           }
           return base;
         }),
-        bolsas: res.bolsas,
+        bolsas: res.bolsas.map((bolsa) => {
+          const titular = beneficiarios.find((b) => b.id === bolsa.beneficiarioId);
+          return {
+            ...bolsa,
+            expediente: titular?.expediente ?? bolsa.beneficiarioId,
+          };
+        }),
         advertencias: res.advertencias,
         sobrantes: res.sobrantes,
         notas: res.advertencias.join('; '),
       });
+      await descontarStock(
+        entradas.map((e) => {
+          const sobrante =
+            res.sobrantes.find((s) => s.nombre === e.alimento.nombre)?.cantidad ?? 0;
+          return {
+            alimentoId: e.alimento.id,
+            unidades: e.cantidadTotal - sobrante,
+          };
+        })
+      );
       setGuardadoFirebase(true);
     } catch (e) {
       console.error(e);

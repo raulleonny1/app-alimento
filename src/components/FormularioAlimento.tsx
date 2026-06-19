@@ -178,10 +178,12 @@ export function FormularioAlimento({
   return (
     <>
       <form className="card form-card" onSubmit={handleSubmit}>
-        <h3>
-          {titulo ??
-            (alimentoExistente ? 'Editar alimento' : 'Nuevo producto con código de barras')}
-        </h3>
+        {titulo !== '' && (
+          <h3>
+            {titulo ??
+              (alimentoExistente ? 'Editar alimento' : 'Nuevo producto con código de barras')}
+          </h3>
+        )}
 
         <label className="field">
           <span>Código de barras 1</span>

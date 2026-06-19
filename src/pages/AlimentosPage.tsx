@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAlimentos } from '../hooks/useAlimentos';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { FormularioAlimento } from '../components/FormularioAlimento';
@@ -46,6 +46,7 @@ export function AlimentosPage() {
       if (confirm(`El código ${dup.codigo} ya existe en "${dup.alimento.nombre}". ¿Deseas editarlo?`)) {
         setEditando(dup.alimento);
         setCodigoEscaneado(null);
+        setMostrarForm(true);
       }
       return;
     }
@@ -63,7 +64,35 @@ export function AlimentosPage() {
   const handleEditarExistente = (alimento: Alimento) => {
     setEditando(alimento);
     setCodigoEscaneado(null);
+    setMostrarForm(true);
   };
+
+  const cerrarForm = () => {
+    setMostrarForm(false);
+    setCodigoEscaneado(null);
+    setEditando(null);
+  };
+
+  const abrirEdicion = (alimento: Alimento) => {
+    setEditando(alimento);
+    setCodigoEscaneado(null);
+    setMostrarForm(true);
+  };
+
+  useEffect(() => {
+    if (!mostrarForm) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mostrarForm]);
+
+  const tituloForm = editando
+    ? `Editar: ${editando.nombre}`
+    : codigoEscaneado
+      ? 'Nuevo producto (código escaneado)'
+      : 'Nuevo producto';
 
   if (loading || buscando) return <p className="loading">Cargando...</p>;
 
@@ -97,19 +126,33 @@ export function AlimentosPage() {
       )}
 
       {mostrarForm && (
-        <FormularioAlimento
-          key={editando?.id ?? codigoEscaneado ?? 'nuevo'}
-          codigoInicial={codigoEscaneado ?? undefined}
-          alimentoExistente={editando}
-          verificarCodigosUnicos={verificarCodigosUnicos}
-          onEditarExistente={handleEditarExistente}
-          onGuardar={handleGuardar}
-          onCancelar={() => {
-            setMostrarForm(false);
-            setCodigoEscaneado(null);
-            setEditando(null);
-          }}
-        />
+        <div className="editor-overlay" role="dialog" aria-modal="true" aria-labelledby="editor-titulo">
+          <div className="editor-panel">
+            <header className="editor-panel-header">
+              <h3 id="editor-titulo">{tituloForm}</h3>
+              <button
+                type="button"
+                className="editor-close"
+                onClick={cerrarForm}
+                aria-label="Cerrar editor"
+              >
+                ✕
+              </button>
+            </header>
+            <div className="editor-panel-body">
+              <FormularioAlimento
+                key={editando?.id ?? codigoEscaneado ?? 'nuevo'}
+                codigoInicial={codigoEscaneado ?? undefined}
+                alimentoExistente={editando}
+                verificarCodigosUnicos={verificarCodigosUnicos}
+                onEditarExistente={handleEditarExistente}
+                onGuardar={handleGuardar}
+                onCancelar={cerrarForm}
+                titulo=""
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="section-title">
@@ -132,8 +175,13 @@ export function AlimentosPage() {
               {a.stock != null && a.stock > 0 && (
                 <p className="meta">{resumenStock(a)}</p>
               )}
+              {(a.stock == null || a.stock === 0) && (
+                <p className="meta meta-warning">
+                  {a.stock === 0 ? 'Agotado en inventario' : 'Sin stock registrado'}
+                </p>
+              )}
               <div className="list-actions">
-                <button className="btn-text" onClick={() => abrirRegistro(undefined, a)}>
+                <button className="btn-text" onClick={() => abrirEdicion(a)}>
                   Editar
                 </button>
                 <button

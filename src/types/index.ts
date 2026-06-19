@@ -47,6 +47,7 @@ export interface ItemDistribucion {
 export interface Bolsa {
   beneficiarioId: string;
   beneficiarioNombre: string;
+  expediente?: string;
   items: ItemDistribucion[];
 }
 

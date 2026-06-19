@@ -29,7 +29,7 @@ export function Layout() {
         </NavLink>
         <NavLink to="/historial" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
           <span className="nav-icon">📋</span>
-          <span>Historial</span>
+          <span>Entregas</span>
         </NavLink>
       </nav>
     </div>
